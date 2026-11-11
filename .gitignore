@@ -90,3 +90,12 @@ desktop.ini
 
 # ---- Claude Code: personal settings stay local (shared skills in .claude/skills are committed)
 .claude/settings.local.json
+
+
+user-guide/
+docs/
+# ---- Markdown: keep only README.md and the backend knowledge base ----------------------------
+# backend/app/knowledge/*.md is NOT documentation: app/rag.py loads these SOPs at runtime, so the deploy needs them.
+*.md
+!README.md
+!backend/app/knowledge/*.md
