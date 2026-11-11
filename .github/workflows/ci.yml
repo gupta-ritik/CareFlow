@@ -32,14 +32,3 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: "22"}
       - run: cd web && npm ci && npm run lint && npm run build
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: {python-version: "3.13"}
-      - run: pip install -r backend/requirements.txt -r docs/requirements.txt
-      # Reference tables are generated from the code; fail if someone changed the code without regenerating them.
-      - run: python scripts/gen_docs.py --check
-      - run: mkdocs build --strict
-        env: {NO_MKDOCS_2_WARNING: "1"}

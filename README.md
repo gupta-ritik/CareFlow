@@ -9,8 +9,11 @@ exactly what is holding the patient up, reminds the right people, and asks a per
 CareFlow handles **paperwork only**. It never decides if a patient is medically fit, never changes medicines, and
 never approves claims or payments.
 
-> **Not a certified medical device.** Read [docs/security-and-compliance.md](docs/security-and-compliance.md) before
-> using real patient data.
+**Live demo:** https://careflow-tan.vercel.app (synthetic data only; the first visit after a quiet spell can take up to
+a minute while the free server wakes up).
+
+> **Not a certified medical device.** Read the security and compliance guide (`docs/security-and-compliance.md`)
+> before using real patient data.
 
 ## Contents
 
@@ -110,8 +113,8 @@ frontend with the last command above.
 
 ## Sign in and try it
 
-**Test accounts and test patients** for every role are in
-[docs/manual-test-plan.md](docs/manual-test-plan.md), together with step-by-step test cases.
+**Test accounts and test patients** for every role are in the manual test plan (`docs/manual-test-plan.md`),
+together with step-by-step test cases.
 
 > The test accounts are for trying CareFlow only. **Deactivate them on the Users page before real use.**
 
@@ -204,7 +207,7 @@ It prints a director sign-in (`director@synthetic-hospital.test`) and a one-time
 
 The synthetic history has six problems planted on purpose (for example *"TPA Gamma is slow on Mondays from day 60"*
 and a red-herring day with only 2 discharges). `evals/ask/run_ask_evals.py` asks 32 questions and scores the answers.
-Full results: [evals/ask/results.md](evals/ask/results.md).
+Running it writes the full results to `evals/ask/results.md`.
 
 <!-- ask-eval-table -->
 | Mode | Planted cause found (top-1) | Red herring not called a trend | Refused correctly | Clarified | "Data can't answer" | Unsupported claims | Identity leaks | Median time |
@@ -267,22 +270,73 @@ cd backend && alembic upgrade head           # creates the tables
 | --- | --- | --- | --- |
 | **Your computer** (Docker) | Development and testing | Free | [Start it on your computer](#start-it-on-your-computer) |
 | **Free cloud demo:** Vercel (website) + Render (API and Redis) + Neon (database) | Demos with test data only | Free | Below |
-| **Hospital server** with HTTPS and nightly backups | Real use | Free software, your own server | [docs/deployment.md](docs/deployment.md) |
+| **Hospital server** with HTTPS and nightly backups | Real use | Free software, your own server | `docs/deployment.md` |
 
 ### Free cloud demo
 
-1. **API on Render.** In Render, choose **New → Blueprint** and pick this repository. [render.yaml](render.yaml)
-   creates the API and Redis in the Ohio region, next to the Neon database. Fill in:
-   - `CAREFLOW_DATABASE_URL`: the output of `neon connection-string production`
-   - `CAREFLOW_CORS_ORIGINS`: your Vercel address, for example `["https://careflow.vercel.app"]`
-   - `CAREFLOW_GROQ_API_KEY`: optional
-2. **Website on Vercel.** Import the repository, set the root directory to `web`, and add
-   `NEXT_PUBLIC_API_BASE=https://<your-render-service>.onrender.com/api`.
-3. Open the Vercel address and sign in.
+The live demo runs this way: website on **Vercel**, API and Redis on **Render**, database on **Neon**, all on free plans.
 
-Free-plan limits: the API sleeps after 15 idle minutes (the next visit waits 30–60 seconds), hospital systems must send
-HL7 over HTTPS instead of port 2575, and the free Redis loses its contents on restart. **Don't put real patient data
-on the free plans.**
+```
+Browser ──► careflow-tan.vercel.app ──/api/*──► careflow-api-trxn.onrender.com ──► Neon Postgres (us-east-2)
+             (Next.js on Vercel)       forwarded    (FastAPI on Render, Ohio)   └──► Render Key Value (Redis)
+```
+
+**1. Get the Neon connection string.** Use the **direct** one (its host has no `-pooler`):
+
+```bash
+neon connection-string production
+```
+
+**2. API on Render.** In Render, choose **New → Blueprint** and pick this repository. [render.yaml](render.yaml)
+creates the API and Redis in the Ohio region, next to the Neon database. Fill in:
+
+| Setting | Value |
+| --- | --- |
+| `CAREFLOW_DATABASE_URL` | The Neon string from step 1 |
+| `CAREFLOW_CORS_ORIGINS` | Your Vercel address as a **JSON list**: `["https://careflow-tan.vercel.app"]` (brackets and double quotes, no trailing slash) |
+| `CAREFLOW_GROQ_API_KEY` | Optional |
+
+The JWT secret is generated and Redis is connected automatically. Each start runs the database migrations first.
+When the service is **Live**, `https://<your-service>.onrender.com/api/health` shows
+`{"database":"ok","redis":"ok","llm":"groq"}`.
+
+**3. Website on Vercel.** Import the repository, set **Root Directory** to `web`, and add these environment variables:
+
+| Setting | Value |
+| --- | --- |
+| `CAREFLOW_API_ORIGIN` | Your Render address, e.g. `https://careflow-api-trxn.onrender.com` (no `/api`, no trailing slash) |
+| `NEXT_PUBLIC_API_BASE` | `/api` |
+
+Vercel then forwards `/api/*` to Render, so the browser only talks to the Vercel address (and preview deployments
+work without CORS changes). Both values are read **at build time**: after changing them, choose **Redeploy** with the
+build cache turned off.
+
+**4. First sign-in.** Open the Vercel address. On an empty database it asks you to name the hospital and create the
+administrator account; do this straight away, before anyone else finds the address. If the database already has
+users, sign in with one of them, or reset a password from your computer:
+
+```powershell
+cd backend
+$env:CAREFLOW_DATABASE_URL = (neon connection-string production)
+$env:CAREFLOW_ENV = "production"
+python -m app.cli reset-password --email you@example.com
+```
+
+Every push to `main` redeploys both Vercel and Render.
+
+**Free-plan limits:** the API sleeps after 15 idle minutes (the next visit waits 30–60 seconds), hospital systems must
+send HL7 over HTTPS instead of port 2575, and the free Redis loses its contents on restart (patients and users are
+safe in Neon). **Don't put real patient data on the free plans.**
+
+**If the online demo doesn't work:**
+
+| Problem | Fix |
+| --- | --- |
+| Sign-in shows *Request failed (404)*, and `/api/health` on the Vercel address shows a Next.js 404 page | Vercel isn't forwarding to Render: check `CAREFLOW_API_ORIGIN`, then redeploy without the build cache |
+| Render log ends in `error parsing value for field "cors_origins"` | `CAREFLOW_CORS_ORIGINS` isn't a JSON list. Use `["https://your-site.vercel.app"]` with straight double quotes |
+| Render log shows a database connection error | Wrong Neon string, or the `-pooler` one. Use `neon connection-string production` |
+| *CORS* error in the browser console | The address in `CAREFLOW_CORS_ORIGINS` doesn't exactly match the website's address |
+| First request takes about a minute, or returns 502 | The free API is waking up. Wait and retry |
 
 ## Connect hospital systems
 
@@ -294,27 +348,27 @@ CareFlow can receive updates directly from the hospital's systems, so staff don'
 - **Outgoing notifications** to each system when something changes (signed webhooks, and HL7 ADT^A03 on discharge).
 - **FHIR** patient import.
 
-Each system gets its own key on the **Integrations** page. Full guide for hospital IT:
-[docs/integrations.md](docs/integrations.md).
+Each system gets its own key on the **Integrations** page. Full guide for hospital IT: `docs/integrations.md`.
 
 ## Important settings
 
-Put these in `.env`. The full list is in [docs/reference.md](docs/reference.md#configuration).
+Put these in `.env` locally, or in the Render and Vercel dashboards online. The full list is in `docs/reference.md`.
 
 | Setting | What it does |
 | --- | --- |
 | `CAREFLOW_JWT_SECRET` | Signs sign-in sessions. **Required**: 32+ random characters (`openssl rand -hex 32`) |
 | `DATABASE_URL` / `CAREFLOW_DATABASE_URL` | Which database to use (Neon or local). `CAREFLOW_DATABASE_URL` wins if both are set |
 | `CAREFLOW_GROQ_API_KEY` | Turns on the AI agents. Without it, CareFlow uses built-in rules and still works |
-| `CAREFLOW_CORS_ORIGINS` | Website addresses allowed to call the API |
+| `CAREFLOW_CORS_ORIGINS` | Website addresses allowed to call the API, as a JSON list: `["https://your-site.vercel.app"]` |
 | `CAREFLOW_ENV` | `dev` locally, `production` online (refuses to start with a weak secret) |
 | `CAREFLOW_SLA_PHARMACY` (and `_INSURANCE`, `_BILLING`, ...) | Minutes before a department counts as delayed |
-| `NEXT_PUBLIC_API_BASE` | Where the website finds the API. Set when building the website |
+| `NEXT_PUBLIC_API_BASE` | Where the website finds the API: `/api` on Vercel, `http://localhost:8000/api` locally. Set when building the website |
+| `CAREFLOW_API_ORIGIN` | Vercel only: the Render API address that `/api/*` is forwarded to. Set when building the website |
 
 ## Run the tests
 
 ```bash
-cd backend && python -m pytest -q          # 65 automated tests (needs the Docker database and Redis running)
+cd backend && python -m pytest -q          # about 110 automated tests (most need the Docker database and Redis running)
 python evals/run_evals.py                  # 30 discharge scenarios; all pass
 ```
 
@@ -324,7 +378,20 @@ The tests use a separate `careflow_test` database. Create it once:
 docker exec careflow-postgres-1 psql -U careflow -d postgres -c "CREATE DATABASE careflow_test OWNER careflow;"
 ```
 
-For testing by hand, follow [docs/manual-test-plan.md](docs/manual-test-plan.md).
+For testing by hand, follow the manual test plan (`docs/manual-test-plan.md`).
+
+### Continuous integration
+
+GitHub Actions runs [.github/workflows/ci.yml](.github/workflows/ci.yml) on every push and pull request:
+
+| Job | What it checks |
+| --- | --- |
+| **backend** | Starts its own PostgreSQL and Redis, runs the tests, the 30 discharge scenarios and the Ask CareFlow evals (fallback mode) |
+| **web** | Installs packages, lints and builds the website |
+
+CI only checks the code; it doesn't deploy. Vercel and Render deploy on their own. If every run ends in *Startup
+failure* within seconds, GitHub Actions is blocked for the account (for example, billing is locked under
+**Settings → Billing and plans**), not by the code.
 
 ## Troubleshooting
 
@@ -356,19 +423,25 @@ backend/    API and AI agents (FastAPI, LangGraph, PostgreSQL, Redis)
   tests/            automated tests
   scripts/bench.py  speed benchmark
 evals/      30 test scenarios for the agents
+  app/knowledge/    SOPs the agents read at runtime (the only Markdown besides this README kept in the repository)
+evals/      30 test scenarios for the agents
 deploy/     HTTPS and backup files for the hospital-server setup
-docs/       guides (below)
+docs/       guides (below; not in this repository)
+.github/    CI workflow
 render.yaml free cloud demo setup on Render
 ```
 
 ## More documentation
 
+This README is the only guide published in the repository. The detailed guides below are kept with the project's
+maintainers, not on GitHub (`.gitignore` excludes every `.md` file except this README and `backend/app/knowledge/`).
+
 | Document | For |
 | --- | --- |
-| [docs/user-guide.md](docs/user-guide.md) | Hospital staff: daily use |
-| [docs/manual-test-plan.md](docs/manual-test-plan.md) | Testers: test accounts, test patients, step-by-step test cases |
-| [docs/deployment.md](docs/deployment.md) | IT: install on a hospital server with HTTPS and backups |
-| [docs/integrations.md](docs/integrations.md) | IT: connect HL7, TPA, pharmacy, lab and HIS systems |
-| [docs/fhir.md](docs/fhir.md) | IT: connect a FHIR server |
-| [docs/security-and-compliance.md](docs/security-and-compliance.md) | Security and privacy review |
-| [docs/reference.md](docs/reference.md) | Developers: code layout, every setting, API, rules, test results, performance, roadmap |
+| `docs/user-guide.md` | Hospital staff: daily use |
+| `docs/manual-test-plan.md` | Testers: test accounts, test patients, step-by-step test cases |
+| `docs/deployment.md` | IT: install on a hospital server with HTTPS and backups |
+| `docs/integrations.md` | IT: connect HL7, TPA, pharmacy, lab and HIS systems |
+| `docs/fhir.md` | IT: connect a FHIR server |
+| `docs/security-and-compliance.md` | Security and privacy review |
+| `docs/reference.md` | Developers: code layout, every setting, API, rules, test results, performance, roadmap |
