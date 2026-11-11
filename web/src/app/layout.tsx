@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import "@fontsource-variable/hanken-grotesk";
 import { AppShell } from "@/components/app-shell";
@@ -8,6 +8,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "CareFlow",
   description: "Administrative discharge clearance, coordinated across departments.",
+  applicationName: "CareFlow",
+  appleWebApp: { capable: true, title: "CareFlow", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f2236",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

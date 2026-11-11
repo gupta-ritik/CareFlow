@@ -18,6 +18,7 @@ psycopg-pool==3.3.3
 pydantic==2.14.3
 pydantic-settings==2.16.2
 PyJWT==2.15.1
+pywebpush==2.5.0
 pytest==9.2.0
 pytest-asyncio==1.4.1.post1
 PyYAML==6.0.3

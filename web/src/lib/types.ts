@@ -153,6 +153,21 @@ export interface DemoRole {
   description: string;
 }
 
+export interface AlertChannel {
+  id: string;
+  kind: "webpush" | "telegram";
+  label: string;
+  createdAt: string;
+  endpoint: string | null;
+}
+
+export interface AlertSettings {
+  webPush: { enabled: boolean; publicKey: string | null };
+  telegram: { enabled: boolean };
+  demo: boolean;
+  channels: AlertChannel[];
+}
+
 export type DemoInfo = { enabled: false } | { enabled: true; preparing: boolean; resetHours: number; roles: DemoRole[] };
 
 export type PayerType = "self_pay" | "cashless" | "government";

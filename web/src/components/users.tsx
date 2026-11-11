@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertsPanel } from "./alerts";
 import { Plus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -189,8 +190,11 @@ export function Account() {
           {user?.name}, {user?.role}. {user?.email}
         </p>
       </PageHeader>
-      <Panel className="max-w-lg p-5 sm:p-6">
-        <h2 className="text-lg font-bold text-ink">Change password</h2>
+      <div className="flex flex-col gap-5">
+        <AlertsPanel />
+        {!user?.demo && (
+          <Panel className="max-w-lg p-5 sm:p-6">
+            <h2 className="text-lg font-bold text-ink">Change password</h2>
         <form onSubmit={submit} className="mt-4 flex flex-col gap-4">
           <Field label="Current password" htmlFor="cur">
             <input id="cur" type="password" autoComplete="current-password" value={f.current} onChange={(e) => setF({ ...f, current: e.target.value })} className={inputClass} required />
@@ -207,7 +211,9 @@ export function Account() {
             {state.busy ? "Saving" : "Change password"}
           </Button>
         </form>
-      </Panel>
+          </Panel>
+        )}
+      </div>
     </>
   );
 }

@@ -22,7 +22,7 @@ from langgraph.types import Send, interrupt
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .. import policy, rag
+from .. import notify, policy, rag
 from ..config import Settings, get_settings
 from ..fhir import FhirClient, fetch_patient_context
 from ..models import ApprovalRequest, AuditLog, Blocker, Evidence, ExecutionRecord, TaskDependency, VerificationRecord, WorkflowTask, utcnow
@@ -295,7 +295,7 @@ def route_after_analyze(state: CareFlowState) -> str:
 
 async def resolve(state: CareFlowState, runtime: Ctx) -> dict:
     deps = runtime.context
-    pending, auto = [], []
+    pending, auto, alerts = [], [], []
     async with deps.sessionmaker() as s:
         wf = await workflow_by_code(s, deps.tenant_id, state["workflow_code"])
         forbidden = known_identifiers(wf.patient.display_name, wf.patient.mrn)
@@ -336,6 +336,8 @@ async def resolve(state: CareFlowState, runtime: Ctx) -> dict:
                         out.evidence_ids, latency_ms=run.latency_ms, tokens=run.tokens or None)
             if verdict.requires_approval:
                 pending.append(row.code)
+                alerts.append(([verdict.approver_role], notify.approval_alert(row.code, b["department"], wf.patient.ward, wf.patient.bed,
+                                                                               out.action, verdict.approver_role)))
                 await audit(s, deps.tenant_id, wf.code, "system", "Policy check", "Approval required", f"Action {row.code} paused with interrupt()", latency_ms=1)
             else:
                 auto.append(row.code)
@@ -343,6 +345,8 @@ async def resolve(state: CareFlowState, runtime: Ctx) -> dict:
         if pending:
             wf.status = "awaiting_approval"
         await s.commit()
+    for roles, alert in alerts:  # after the commit, so a tapped alert opens an approval that already exists
+        notify.send_to_roles(deps.sessionmaker, deps.tenant_id, roles, alert)
     return {"pending_approvals": sorted(set(pending)), "to_execute": auto}
 
 
@@ -422,7 +426,7 @@ def _effect_present(action: str, data: dict, ref_code: str) -> bool:
 
 async def execute(state: CareFlowState, runtime: Ctx) -> dict:
     deps = runtime.context
-    done, skipped, notices = [], set(), []
+    done, skipped, notices, alerts = [], set(), [], []
     async with deps.sessionmaker() as s:
         wf = await workflow_by_code(s, deps.tenant_id, state["workflow_code"])
         gw = DepartmentGateway(s, deps.tenant_id)
@@ -459,12 +463,17 @@ async def execute(state: CareFlowState, runtime: Ctx) -> dict:
                         f"{code} on {dept}" if ok else err or "", a.evidence_ids, latency_ms=latency)
             if ok:
                 done.append(code)
+                if a.action == "notify_department":  # CareFlow's reminder also reaches the department's phones
+                    alerts.append((notify.dept_roles(dept), notify.reminder_alert(code, dept, wf.patient.ward, wf.patient.bed, a.params.get("message", ""),
+                                                                                    known_identifiers(wf.patient.display_name, wf.patient.mrn))))
                 if (target := outbound.ACTION_EVENTS.get(a.action)):
                     notices.append((target, {**outbound.patient_payload(wf.patient), "workflowId": wf.code, "actionId": code,
                                              "action": a.action, "description": a.description, "params": a.params}))
         await s.commit()
     for (system, event), data in notices:
         outbound.notify(deps.sessionmaker, deps.tenant_id, system, event, data, data["patientRef"])
+    for roles, alert in alerts:
+        notify.send_to_roles(deps.sessionmaker, deps.tenant_id, roles, alert)
     return {"to_execute": [], "just_executed": done, "recheck": sorted(skipped)}
 
 

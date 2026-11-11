@@ -42,6 +42,11 @@ services:
       # Set to "false" before this deployment ever holds real patient data.
       - key: CAREFLOW_DEMO_MODE
         value: "true"
+      # Phone alerts (free, optional; backend/app/notify.py). Add these secrets under careflow-api -> Environment:
+      #   CAREFLOW_VAPID_PUBLIC_KEY / CAREFLOW_VAPID_PRIVATE_KEY   from `python -m app.cli vapid-keys` (installed app / browser push)
+      #   CAREFLOW_TELEGRAM_BOT_TOKEN                              from @BotFather in Telegram
+      # The Telegram webhook registers itself at RENDER_EXTERNAL_URL (Render sets it), and "Open in CareFlow" links
+      # use the first https address in CAREFLOW_CORS_ORIGINS.
       - key: CAREFLOW_API_DOCS
         value: "false"
       - key: CAREFLOW_DB_POOL_SIZE

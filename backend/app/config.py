@@ -62,6 +62,17 @@ class Settings(BaseSettings):
     demo_mode: bool = False  # CAREFLOW_DEMO_MODE=true turns it on
     demo_history_days: int = 60  # days of synthetic discharge history behind the Director dashboard and Ask CareFlow (0 = none)
     demo_reset_hours: int = 24  # rebuild the demo data when it is older than this
+    # Staff alerts for approvals and reminders (app/notify.py). Both are free; each is off until its keys are set.
+    # Web Push to installed app / browser: generate a key pair once with `python -m app.cli vapid-keys`.
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = ""  # mailto: or https: contact for push services; defaults to public_web_url
+    # Telegram: create a bot with @BotFather and paste its token. The webhook registers itself at start-up.
+    telegram_bot_token: str = ""
+    # Public addresses, for the Telegram webhook and the "Open in CareFlow" links. Render sets RENDER_EXTERNAL_URL itself;
+    # the web address defaults to the first https origin in CAREFLOW_CORS_ORIGINS.
+    public_api_url: str = Field("", validation_alias=AliasChoices("CAREFLOW_PUBLIC_API_URL", "RENDER_EXTERNAL_URL"))
+    public_web_url: str = ""
     embedded_worker: bool = True  # run the event consumer inside the API process (dev)
     checkpointer: str = "postgres"  # postgres | memory
     max_iterations: int = 4  # re-plan loops allowed per graph run

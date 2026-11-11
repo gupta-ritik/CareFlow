@@ -10,9 +10,10 @@ from fastapi.responses import JSONResponse
 from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy import select
 
-from . import db, demo
+from . import db, demo, notify
 from .api.ask import router as ask_router
 from .api.demo import router as demo_router
+from .api.notifications import router as notifications_router
 from .api.executive import router as executive_router
 from .api.hospital import router as hospital_router
 from .api.integrations import router as integrations_router
@@ -99,6 +100,9 @@ async def lifespan(app: FastAPI):
         except Exception as exc:  # noqa: BLE001 - the demo is optional; the app must still start
             log.warning("Could not check the demo data: %s", exc)
 
+    if notify.telegram_enabled(s):  # point the bot at this server; in the background so start-up never waits on Telegram
+        notify._schedule(notify.register_webhook(s))
+
     stop = asyncio.Event()
     worker = asyncio.create_task(consume_forever(redis, engine, sm, "api-embedded", stop)) if (redis is not None and s.embedded_worker) else None
     try:
@@ -150,6 +154,7 @@ def create_app() -> FastAPI:
     app.include_router(executive_router)
     app.include_router(ask_router)
     app.include_router(demo_router)
+    app.include_router(notifications_router)
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception):

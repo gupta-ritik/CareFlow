@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { BarChart3, BedDouble, ClipboardCheck, ClipboardList, Gauge, History, KeyRound, LayoutList, LogOut, Menu, MessageSquareText, Plug, UserRound, Users, X } from "lucide-react";
+import { BarChart3, BedDouble, ClipboardCheck, ClipboardList, Gauge, History, LayoutList, LogOut, Menu, MessageSquareText, Plug, Settings, UserRound, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -140,11 +140,9 @@ function SessionCard({ onNavigate }: { onNavigate?: () => void }) {
       <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
       <p className="truncate text-xs text-slate">{user.role}</p>
       <div className="mt-2 flex gap-1">
-        {!user.demo && (
-          <Link href="/account" onClick={onNavigate} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate hover:bg-white/60 hover:text-ink">
-            <KeyRound className="size-3.5" aria-hidden /> Password
-          </Link>
-        )}
+        <Link href="/account" onClick={onNavigate} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate hover:bg-white/60 hover:text-ink">
+          <Settings className="size-3.5" aria-hidden /> Account
+        </Link>
         <button
           type="button"
           onClick={() => {

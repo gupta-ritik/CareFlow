@@ -2,6 +2,8 @@
 import { useSession } from "./session";
 import type {
   AgentStats,
+  AlertChannel,
+  AlertSettings,
   BedBoard,
   BedInfo,
   ExecutiveOverview,
@@ -75,6 +77,14 @@ export const login = (email: string, password: string) => post<Session>("/auth/l
 // Public demo (only when the backend runs with CAREFLOW_DEMO_MODE=true)
 export const demoInfo = () => request<DemoInfo>("/demo");
 export const demoLogin = (role: string) => post<Session & { home: string; preparing: boolean }>("/demo/login", { role });
+
+// Alerts on phones: Web Push and Telegram
+export const alertSettings = () => request<AlertSettings>("/notifications");
+export const addPushSubscription = (b: { endpoint: string; keys: { p256dh: string; auth: string }; label: string }) =>
+  post<AlertChannel>("/notifications/webpush", b);
+export const telegramLink = () => post<{ url: string; expiresInMinutes: number }>("/notifications/telegram/link");
+export const removeAlertChannel = (id: string) => del<void>(`/notifications/${id}`);
+export const sendTestAlert = () => post<{ sent: number; channels: number }>("/notifications/test");
 
 export const changePassword = (currentPassword: string, newPassword: string) =>
   post<void>("/auth/change-password", { currentPassword, newPassword });

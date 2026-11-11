@@ -122,6 +122,22 @@ async def sync_beds(args) -> None:
     print(f"Beds synced for {n} admitted patient(s).")
 
 
+def vapid_keys(args) -> None:
+    """A Web Push (VAPID) key pair, base64url-encoded, ready to paste into the environment. Generate it once and keep it:
+    changing it makes every existing push subscription stop working."""
+    import base64
+
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    b64 = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()  # noqa: E731
+    public = key.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+    print(f"CAREFLOW_VAPID_PUBLIC_KEY={b64(public)}")
+    print(f"CAREFLOW_VAPID_PRIVATE_KEY={b64(key.private_numbers().private_value.to_bytes(32, 'big'))}")
+    print("# Keep the private key secret (Render: careflow-api -> Environment). Never commit it.")
+
+
 def build_parser() -> argparse.ArgumentParser:
     """The command-line interface. scripts/gen_docs.py reads this to generate the CLI reference."""
     ap = argparse.ArgumentParser(prog="python -m app.cli", description="CareFlow administration commands.")
@@ -136,11 +152,14 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--password", help="New password (12+ characters). Omit to be asked without echoing it.")
     sub.add_parser("load-examples", help="Add two clearly labelled test patients, admitted but not yet authorized.")
     sub.add_parser("sync-beds", help="Fill the bed board from admitted patients' ward and bed (run once after upgrading).")
+    sub.add_parser("vapid-keys", help="Print a new key pair for push notifications (CAREFLOW_VAPID_PUBLIC_KEY / _PRIVATE_KEY).")
     return ap
 
 
 def main() -> None:
     args = build_parser().parse_args()
+    if args.cmd == "vapid-keys":
+        return vapid_keys(args)
     fn = {"create-admin": create_admin, "reset-password": reset_password, "load-examples": load_examples, "sync-beds": sync_beds}[args.cmd]
     asyncio.run(fn(args))
 

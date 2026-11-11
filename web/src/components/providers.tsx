@@ -1,7 +1,8 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import "@/lib/pwa"; // starts listening for the browser's "install app" offer as early as possible
 
 let browserQueryClient: QueryClient | undefined;
 
@@ -13,5 +14,9 @@ function getQueryClient() {
 }
 
 export function Providers({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    // The service worker makes CareFlow installable and receives push alerts (public/sw.js).
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }, []);
   return <QueryClientProvider client={getQueryClient()}>{children}</QueryClientProvider>;
 }

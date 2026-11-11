@@ -27,7 +27,7 @@ can take up to a minute while the free server wakes up.
 7. [Ask CareFlow](#ask-careflow)
 8. [Where the data is stored](#where-the-data-is-stored)
 9. [Put it online](#put-it-online)
-10. [Connect hospital systems](#connect-hospital-systems)
+10. [Install as an app and get alerts](#install-as-an-app-and-get-alerts) · [Connect hospital systems](#connect-hospital-systems)
 11. [Important settings](#important-settings)
 12. [Run the tests](#run-the-tests)
 13. [Troubleshooting](#troubleshooting)
@@ -346,6 +346,30 @@ safe in Neon). **Don't put real patient data on the free plans.**
 | *CORS* error in the browser console | The address in `CAREFLOW_CORS_ORIGINS` doesn't exactly match the website's address |
 | First request takes about a minute, or returns 502 | The free API is waking up. Wait and retry |
 
+## Install as an app and get alerts
+
+**Install.** CareFlow is a Progressive Web App. On Android or a computer, open it in Chrome or Edge and choose
+**Install app** (or **Account → Install CareFlow**). On iPhone or iPad, tap **Share → Add to Home Screen**. It then
+opens full screen from its own icon. Without a connection it shows a clear "No connection" page; it stores no patient
+data on the device.
+
+**Alerts.** When an action needs someone's approval, everyone with the approver role is alerted. When CareFlow sends a
+department a reminder, everyone working that department's queue is alerted. Tapping an alert opens **Approvals** or
+**Department queues**. Alerts show the ward and bed, never patient names or MRNs, because they can appear on a locked
+phone. Each person turns alerts on for themselves under **Account**:
+
+- **This device** (Web Push): works in the installed app and in desktop browsers. iPhone needs the installed app (iOS 16.4+).
+- **Telegram**: **Connect Telegram** opens a chat with your bot; tap **Start**. Send `/stop` there to disconnect.
+
+Demo accounts can't turn alerts on, because everyone shares them.
+
+**Setup (both free; each stays off until its keys are set):**
+
+| Channel | Steps |
+| --- | --- |
+| Web Push | Run `cd backend && python -m app.cli vapid-keys` once. Put both lines in Render → careflow-api → Environment (or `.env` locally). Keep the private key secret, and don't change it later: that stops every existing subscription |
+| Telegram | In Telegram, message **@BotFather**, send `/newbot`, and copy the token into `CAREFLOW_TELEGRAM_BOT_TOKEN`. On Render, the bot's webhook registers itself at start-up. Elsewhere, set `CAREFLOW_PUBLIC_API_URL` to the API's public https address |
+
 ## Connect hospital systems
 
 CareFlow can receive updates directly from the hospital's systems, so staff don't have to retype them.
@@ -370,6 +394,9 @@ Put these in `.env` locally, or in the Render and Vercel dashboards online. The 
 | `CAREFLOW_CORS_ORIGINS` | Website addresses allowed to call the API, as a JSON list: `["https://your-site.vercel.app"]` |
 | `CAREFLOW_ENV` | `dev` locally, `production` online (refuses to start with a weak secret) |
 | `CAREFLOW_DEMO_MODE` | `true` adds the public **Try the live demo** buttons (separate synthetic hospital). Off by default; never on with real patient data |
+| `CAREFLOW_VAPID_PUBLIC_KEY` / `CAREFLOW_VAPID_PRIVATE_KEY` | Turn on push alerts to the installed app and browsers (`python -m app.cli vapid-keys`) |
+| `CAREFLOW_TELEGRAM_BOT_TOKEN` | Turns on Telegram alerts (token from @BotFather) |
+| `CAREFLOW_PUBLIC_API_URL` / `CAREFLOW_PUBLIC_WEB_URL` | Public addresses for the Telegram webhook and alert links. Render and the CORS setting supply them automatically |
 | `CAREFLOW_DEMO_HISTORY_DAYS` / `CAREFLOW_DEMO_RESET_HOURS` | Demo history length (default 60 days) and how often the demo data is rebuilt (default 24 hours) |
 | `CAREFLOW_SLA_PHARMACY` (and `_INSURANCE`, `_BILLING`, ...) | Minutes before a department counts as delayed |
 | `NEXT_PUBLIC_API_BASE` | Where the website finds the API: `/api` on Vercel, `http://localhost:8000/api` locally. Set when building the website |

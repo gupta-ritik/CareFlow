@@ -370,3 +370,18 @@ class AskTurn(Base):
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)   # thumbs: 1 or -1
     feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class NotificationChannel(Base):
+    """Where a user wants alerts: a browser/phone Web Push subscription or a Telegram chat (app/notify.py)."""
+
+    __tablename__ = "notification_channels"
+    __table_args__ = (UniqueConstraint("kind", "address", name="uq_notification_channel"),)
+    id: Mapped[uuid.UUID] = pk()
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))  # webpush | telegram
+    address: Mapped[str] = mapped_column(Text)  # push endpoint URL, or Telegram chat id
+    keys: Mapped[dict] = mapped_column(JSONType, default=dict)  # Web Push p256dh/auth keys
+    label: Mapped[str] = mapped_column(String(200), default="")  # e.g. "Chrome on Android", "Telegram @asha"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
