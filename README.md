@@ -9,8 +9,9 @@ exactly what is holding the patient up, reminds the right people, and asks a per
 CareFlow handles **paperwork only**. It never decides if a patient is medically fit, never changes medicines, and
 never approves claims or payments.
 
-**Live demo:** https://careflow-tan.vercel.app (synthetic data only; the first visit after a quiet spell can take up to
-a minute while the free server wakes up).
+**Live demo:** https://careflow-tan.vercel.app. No account needed: under **Try the live demo**, pick a role (Hospital
+director is a good start). Every patient is synthetic, the data resets daily, and the first visit after a quiet spell
+can take up to a minute while the free server wakes up.
 
 > **Not a certified medical device.** Read the security and compliance guide (`docs/security-and-compliance.md`)
 > before using real patient data.
@@ -324,6 +325,13 @@ python -m app.cli reset-password --email you@example.com
 
 Every push to `main` redeploys both Vercel and Render.
 
+**Public demo mode.** [render.yaml](render.yaml) sets `CAREFLOW_DEMO_MODE=true`, which adds **Try the live demo**
+buttons to the sign-in page. Visitors sign in as any role except Administrator, without a password, into a separate
+hospital (`careflow-demo`) holding 60 days of synthetic history plus 8 live patients moving through the real
+workflow. The API rebuilds that hospital when its data is older than 24 hours (about 15 seconds, in the background).
+Your own hospital, its users and patients are never read or changed, and the first-run setup page still appears on a
+fresh database. **Turn demo mode off before the deployment holds real patient data.**
+
 **Free-plan limits:** the API sleeps after 15 idle minutes (the next visit waits 30–60 seconds), hospital systems must
 send HL7 over HTTPS instead of port 2575, and the free Redis loses its contents on restart (patients and users are
 safe in Neon). **Don't put real patient data on the free plans.**
@@ -361,6 +369,8 @@ Put these in `.env` locally, or in the Render and Vercel dashboards online. The 
 | `CAREFLOW_GROQ_API_KEY` | Turns on the AI agents. Without it, CareFlow uses built-in rules and still works |
 | `CAREFLOW_CORS_ORIGINS` | Website addresses allowed to call the API, as a JSON list: `["https://your-site.vercel.app"]` |
 | `CAREFLOW_ENV` | `dev` locally, `production` online (refuses to start with a weak secret) |
+| `CAREFLOW_DEMO_MODE` | `true` adds the public **Try the live demo** buttons (separate synthetic hospital). Off by default; never on with real patient data |
+| `CAREFLOW_DEMO_HISTORY_DAYS` / `CAREFLOW_DEMO_RESET_HOURS` | Demo history length (default 60 days) and how often the demo data is rebuilt (default 24 hours) |
 | `CAREFLOW_SLA_PHARMACY` (and `_INSURANCE`, `_BILLING`, ...) | Minutes before a department counts as delayed |
 | `NEXT_PUBLIC_API_BASE` | Where the website finds the API: `/api` on Vercel, `http://localhost:8000/api` locally. Set when building the website |
 | `CAREFLOW_API_ORIGIN` | Vercel only: the Render API address that `/api/*` is forwarded to. Set when building the website |

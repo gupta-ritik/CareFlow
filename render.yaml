@@ -38,6 +38,10 @@ services:
         sync: false
       - key: CAREFLOW_EMBEDDED_WORKER
         value: "true"
+      # Public "Try the demo" buttons: a separate synthetic hospital, rebuilt daily (backend/app/demo.py).
+      # Set to "false" before this deployment ever holds real patient data.
+      - key: CAREFLOW_DEMO_MODE
+        value: "true"
       - key: CAREFLOW_API_DOCS
         value: "false"
       - key: CAREFLOW_DB_POOL_SIZE

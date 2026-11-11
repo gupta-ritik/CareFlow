@@ -11,6 +11,7 @@ import type {
   AuditEvent,
   ClearanceReport,
   Dashboard,
+  DemoInfo,
   DepartmentInfo,
   PatientRecord,
   ProposedAction,
@@ -71,6 +72,10 @@ type Session = { accessToken: string; expiresIn: number; user: SessionUser };
 export const setupStatus = () => request<{ needsSetup: boolean; fhirConfigured: boolean }>("/setup/status");
 export const runSetup = (b: { hospitalName: string; adminName: string; adminEmail: string; password: string }) => post<Session>("/setup", b);
 export const login = (email: string, password: string) => post<Session>("/auth/login", { email, password });
+// Public demo (only when the backend runs with CAREFLOW_DEMO_MODE=true)
+export const demoInfo = () => request<DemoInfo>("/demo");
+export const demoLogin = (role: string) => post<Session & { home: string; preparing: boolean }>("/demo/login", { role });
+
 export const changePassword = (currentPassword: string, newPassword: string) =>
   post<void>("/auth/change-password", { currentPassword, newPassword });
 

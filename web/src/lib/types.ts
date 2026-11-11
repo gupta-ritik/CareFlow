@@ -141,7 +141,19 @@ export interface SessionUser {
   email: string;
   role: string;
   permissions: string[];
+  /** Signed in through "Try the demo" (synthetic demo hospital, no password). */
+  demo?: boolean;
+  demoRole?: string;
 }
+
+export interface DemoRole {
+  key: string;
+  role: string;
+  home: string;
+  description: string;
+}
+
+export type DemoInfo = { enabled: false } | { enabled: true; preparing: boolean; resetHours: number; roles: DemoRole[] };
 
 export type PayerType = "self_pay" | "cashless" | "government";
 

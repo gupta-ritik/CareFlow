@@ -60,7 +60,11 @@ class SetupIn(In):
 
 
 async def _needs_setup(s: AsyncSession) -> bool:
-    return (await s.scalar(select(func.count()).select_from(User))) == 0
+    """True until the first real account exists. Demo accounts (app.demo) live in their own hospital and don't count."""
+    from ..demo import DEMO_SLUG
+
+    real_users = select(func.count()).select_from(User).join(Tenant, Tenant.id == User.tenant_id).where(Tenant.slug != DEMO_SLUG)
+    return (await s.scalar(real_users)) == 0
 
 
 @router.get("/setup/status")

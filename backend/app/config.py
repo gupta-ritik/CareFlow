@@ -57,6 +57,11 @@ class Settings(BaseSettings):
 
     # Runtime
     seed_demo: bool = False  # tests only: load the 8 synthetic patients and demo users on an empty database
+    # Public demo ("Try the demo" buttons on the sign-in page, app/demo.py): a separate synthetic hospital anyone can
+    # explore as any role except Administrator. Never enable it on a server that holds real patient data.
+    demo_mode: bool = False  # CAREFLOW_DEMO_MODE=true turns it on
+    demo_history_days: int = 60  # days of synthetic discharge history behind the Director dashboard and Ask CareFlow (0 = none)
+    demo_reset_hours: int = 24  # rebuild the demo data when it is older than this
     embedded_worker: bool = True  # run the event consumer inside the API process (dev)
     checkpointer: str = "postgres"  # postgres | memory
     max_iterations: int = 4  # re-plan loops allowed per graph run

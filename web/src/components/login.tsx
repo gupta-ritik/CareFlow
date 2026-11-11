@@ -4,8 +4,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Mark } from "./app-shell";
 import { ErrorText, Field, inputClass } from "./ui";
-import { login, runSetup, setupStatus } from "@/lib/api";
+import { demoInfo, demoLogin, login, runSetup, setupStatus } from "@/lib/api";
 import { useSession } from "@/lib/session";
+import type { DemoInfo } from "@/lib/types";
 
 function Card({ title, lead, children }: { title: string; lead: string; children: ReactNode }) {
   return (
@@ -32,6 +33,56 @@ function useGoNext() {
   };
 }
 
+function DemoPanel({ info }: { info: Extract<DemoInfo, { enabled: true }> }) {
+  const router = useRouter();
+  const signIn = useSession((s) => s.signIn);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+
+  const start = async (key: string) => {
+    setBusy(key);
+    setError(null);
+    try {
+      const r = await demoLogin(key);
+      signIn(r.accessToken, r.user);
+      router.replace(r.home);
+    } catch (err) {
+      setError(err);
+      setBusy(null);
+    }
+  };
+
+  return (
+    <section aria-labelledby="demo-title" className="mt-6 rounded-2xl bg-tide-soft/70 p-4">
+      <h2 id="demo-title" className="text-sm font-bold text-ink">Try the live demo</h2>
+      <p className="mt-1 text-xs leading-relaxed text-slate">
+        No account needed. Pick a role to explore a fictional hospital; every patient is synthetic and the data resets every{" "}
+        {info.resetHours} hours.
+      </p>
+      {info.preparing && <p className="mt-2 text-xs font-semibold text-amber">Demo data is being refreshed. Some screens may fill in over the next minute.</p>}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {info.roles.map((r, i) => (
+          <button
+            key={r.key}
+            type="button"
+            title={r.description}
+            disabled={busy !== null}
+            onClick={() => start(r.key)}
+            className={
+              i === 0
+                ? "col-span-2 rounded-xl bg-tide px-3 py-2 text-sm font-semibold text-white hover:bg-tide/90 disabled:opacity-60"
+                : "rounded-xl bg-white/80 px-3 py-2 text-left text-xs font-semibold text-ink hover:bg-white disabled:opacity-60"
+            }
+          >
+            {busy === r.key ? "Opening…" : i === 0 ? `${r.role} (start here)` : r.role}
+          </button>
+        ))}
+      </div>
+      <ErrorText error={error} />
+    </section>
+  );
+}
+
 export function Login() {
   const router = useRouter();
   const goNext = useGoNext();
@@ -40,11 +91,15 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const [demo, setDemo] = useState<DemoInfo | null>(null);
 
   useEffect(() => {
     setupStatus()
       .then((s) => s.needsSetup && router.replace("/setup"))
       .catch((e) => setError(e));
+    demoInfo()
+      .then(setDemo)
+      .catch(() => setDemo(null)); // an older backend without demo mode: just show the sign-in form
   }, [router]);
 
   const submit = async (e: React.FormEvent) => {
@@ -64,7 +119,9 @@ export function Login() {
 
   return (
     <Card title="Sign in" lead="Use the account your administrator created for you.">
-      <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
+      {demo?.enabled && <DemoPanel info={demo} />}
+      {demo?.enabled && <p className="mt-6 text-center text-xs font-semibold uppercase tracking-wide text-faint">or sign in with your account</p>}
+      <form onSubmit={submit} className={demo?.enabled ? "mt-3 flex flex-col gap-4" : "mt-6 flex flex-col gap-4"}>
         <Field label="Email" htmlFor="email">
           <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} required />
         </Field>

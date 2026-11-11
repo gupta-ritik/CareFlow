@@ -21,6 +21,7 @@ from . import db
 from .api.hospital import _ensure_roles
 from .config import get_settings
 from .db import Base
+from .demo import DEMO_SLUG
 from .departments import initial_records
 from .models import Patient, Tenant, User
 from .repo import ensure_counters
@@ -47,7 +48,7 @@ async def _prepare():
 async def create_admin(args) -> None:
     sm = await _prepare()
     async with sm() as s:
-        tenant = await s.scalar(select(Tenant).order_by(Tenant.created_at).limit(1))
+        tenant = await s.scalar(select(Tenant).where(Tenant.slug != DEMO_SLUG).order_by(Tenant.created_at).limit(1))
         if tenant is None:
             if not args.hospital:
                 sys.exit("No hospital exists yet; pass --hospital NAME.")
@@ -80,7 +81,7 @@ async def load_examples(args) -> None:
     sm = await _prepare()
     now = datetime.now(timezone.utc)
     async with sm() as s:
-        tenant = await s.scalar(select(Tenant).order_by(Tenant.created_at).limit(1))
+        tenant = await s.scalar(select(Tenant).where(Tenant.slug != DEMO_SLUG).order_by(Tenant.created_at).limit(1))
         if tenant is None or not await s.scalar(select(func.count()).select_from(User)):
             sys.exit("Set up CareFlow first (web setup page or create-admin).")
         examples = [

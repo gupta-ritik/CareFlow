@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import departments as D
 from ..events import make_event, publish
+from ..demo import DEMO_SLUG
 from ..models import Bed, IntegrationMessage, Patient, SimDepartmentRecord, Tenant, Workflow, utcnow
 from ..sim import upsert_record
 from . import hl7
@@ -101,7 +102,7 @@ async def resolve_tenant(s: AsyncSession, slug: str | None) -> Tenant:
         if t is None:
             raise IntegrationError(f"Unknown hospital {slug}")
         return t
-    t = await s.scalar(select(Tenant).order_by(Tenant.created_at).limit(1))
+    t = await s.scalar(select(Tenant).where(Tenant.slug != DEMO_SLUG).order_by(Tenant.created_at).limit(1))
     if t is None:
         raise IntegrationError("CareFlow isn't set up yet")
     return t

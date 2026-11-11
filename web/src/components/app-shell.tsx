@@ -6,8 +6,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { demoInfo, demoLogin } from "@/lib/api";
 import { useActions } from "@/lib/queries";
 import { useHydrated, useSession } from "@/lib/session";
+import type { DemoRole } from "@/lib/types";
 
 const NAV = [
   { href: "/director", label: "Director dashboard", icon: Gauge, perm: "executive:read" },
@@ -72,6 +74,62 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+/** Shown on every page while signed in through "Try the demo": says the data is synthetic and switches role. */
+function DemoBar() {
+  const user = useSession((s) => s.user);
+  const signIn = useSession((s) => s.signIn);
+  const qc = useQueryClient();
+  const router = useRouter();
+  const [roles, setRoles] = useState<DemoRole[]>([]);
+  const [busy, setBusy] = useState(false);
+  const isDemo = Boolean(user?.demo);
+
+  useEffect(() => {
+    if (!isDemo) return;
+    demoInfo()
+      .then((d) => setRoles(d.enabled ? d.roles : []))
+      .catch(() => setRoles([]));
+  }, [isDemo]);
+
+  if (!isDemo || !user) return null;
+
+  const switchTo = async (key: string) => {
+    setBusy(true);
+    try {
+      const r = await demoLogin(key);
+      qc.clear();
+      signIn(r.accessToken, r.user);
+      router.replace(r.home);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div role="status" className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-tide-soft/80 px-4 py-2.5 text-sm text-ink">
+      <span className="font-semibold">Demo hospital</span>
+      <span className="text-xs text-slate">Synthetic patients only. Try anything; the data resets daily.</span>
+      {roles.length > 0 && (
+        <label className="ml-auto flex items-center gap-2 text-xs font-semibold text-slate">
+          View as
+          <select
+            value={user.demoRole ?? ""}
+            disabled={busy}
+            onChange={(e) => switchTo(e.target.value)}
+            className="rounded-lg border border-white/80 bg-white/90 px-2 py-1 text-xs font-semibold text-ink disabled:opacity-60"
+          >
+            {roles.map((r) => (
+              <option key={r.key} value={r.key}>
+                {r.role}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </div>
+  );
+}
+
 function SessionCard({ onNavigate }: { onNavigate?: () => void }) {
   const { user, signOut } = useSession();
   const qc = useQueryClient();
@@ -82,9 +140,11 @@ function SessionCard({ onNavigate }: { onNavigate?: () => void }) {
       <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
       <p className="truncate text-xs text-slate">{user.role}</p>
       <div className="mt-2 flex gap-1">
-        <Link href="/account" onClick={onNavigate} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate hover:bg-white/60 hover:text-ink">
-          <KeyRound className="size-3.5" aria-hidden /> Password
-        </Link>
+        {!user.demo && (
+          <Link href="/account" onClick={onNavigate} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate hover:bg-white/60 hover:text-ink">
+            <KeyRound className="size-3.5" aria-hidden /> Password
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -155,6 +215,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       <main id="main" className="min-w-0 flex-1 pt-16 pb-10 lg:pt-2">
+        <DemoBar />
         {children}
       </main>
     </div>
