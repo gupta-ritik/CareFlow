@@ -1,0 +1,18 @@
+name: Government payer with portal timeout, draft reconciliation, lab and billing waiting
+group: Multiple blockers
+patient: {payer_type: government, payer: CGHS, has_lab_orders: true}
+records:
+  documentation: {}
+  pharmacy: {status: DONE, reconciliation: DRAFT}
+  laboratory: {reports: [{id: DR-1, status: final, acknowledged: false}]}
+  insurance: {status: PENDING_PAYER, submitted_ago: 200, _fault: timeout}
+  billing: {status: NOT_STARTED}
+steps: [{start: {}}]
+expect:
+  status: awaiting_approval
+  blockers: ["insurance:system_unavailable", "pharmacy:reconciliation_incomplete", "laboratory:lab_unacknowledged", "billing:waiting_on_dependency"]
+  actions:
+    - {action: retry_portal_submission, status: pending}
+    - {action: notify_department, status: verified}
+    - {action: request_lab_acknowledgement, status: verified}
+  audit_contains: ["unreachable after 3 attempts"]

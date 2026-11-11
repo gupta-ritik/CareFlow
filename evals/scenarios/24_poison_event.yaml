@@ -1,0 +1,5 @@
+name: Unknown event type is rejected without touching workflows
+group: Infrastructure
+records: {documentation: {}, pharmacy: {}, billing: {}}
+steps: [{event: {type: NOT_A_REAL_EVENT}}]
+expect: {workflows: 0, outcomes_contain: ["rejected"]}

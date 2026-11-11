@@ -1,0 +1,5 @@
+name: Task marked done but reconciliation still draft is not treated as cleared
+group: Verification
+records: {documentation: {}, pharmacy: {status: DONE, reconciliation: DRAFT}, billing: {}}
+steps: [{start: {}}]
+expect: {status: blocked, blockers: ["pharmacy:reconciliation_incomplete"], actions: [{action: notify_department, status: verified}]}

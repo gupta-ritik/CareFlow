@@ -1,0 +1,6 @@
+name: High-risk insurance action needs the insurance lead, not the coordinator
+group: Security
+patient: {payer_type: cashless}
+records: {documentation: {}, pharmacy: {}, insurance: {status: QUERY_RAISED, requested_document: itemised_pharmacy_bill}, billing: {status: NOT_STARTED}}
+steps: [{start: {}}, {approve: {action: attach_document_to_claim, as: Discharge coordinator}}]
+expect: {outcomes_contain: ["error 403"], actions: [{action: attach_document_to_claim, status: pending}]}

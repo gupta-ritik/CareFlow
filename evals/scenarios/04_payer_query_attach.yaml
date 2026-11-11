@@ -1,0 +1,14 @@
+name: Payer query answered by attaching an existing document
+group: Happy path
+patient: {payer_type: cashless}
+records:
+  documentation: {}
+  pharmacy: {}
+  insurance: {status: QUERY_RAISED, requested_document: itemised_pharmacy_bill}
+  billing: {status: NOT_STARTED}
+steps:
+  - start: {}
+  - approve: {action: attach_document_to_claim}
+  - patch: {department: insurance, patch: {status: APPROVED}}
+  - patch: {department: billing, patch: {status: FINAL}}
+expect: {status: cleared, blockers: [], actions: [{action: attach_document_to_claim, status: verified}]}

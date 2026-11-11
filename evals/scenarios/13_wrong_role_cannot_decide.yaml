@@ -1,0 +1,5 @@
+name: Pharmacy staff can't approve a coordinator-level action
+group: Approvals
+records: {documentation: {}, pharmacy: {status: IN_PROGRESS, ordered_ago: 120, assigned_to: null}, billing: {}}
+steps: [{start: {}}, {approve: {action: escalate_pharmacy_task, as: Pharmacy}}]
+expect: {status: awaiting_approval, outcomes_contain: ["error 403"], actions: [{action: escalate_pharmacy_task, status: pending}]}

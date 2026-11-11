@@ -1,0 +1,9 @@
+name: Write reports success but changes nothing; verification catches it
+group: Verification
+records: {documentation: {}, pharmacy: {status: IN_PROGRESS, ordered_ago: 120, assigned_to: null, _fault: noop}, billing: {}}
+steps: [{start: {}}, {approve: {action: escalate_pharmacy_task}}]
+expect:
+  status: blocked
+  blockers: ["pharmacy:pharmacy_delay", "pharmacy:action_not_applied"]
+  actions: [{action: escalate_pharmacy_task, status: verification_failed}]
+  audit_contains: ["Verification failed"]

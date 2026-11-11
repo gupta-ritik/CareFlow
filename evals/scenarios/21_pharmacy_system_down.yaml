@@ -1,0 +1,9 @@
+name: Pharmacy system down; retried, then left for a person
+group: Infrastructure
+records: {documentation: {}, pharmacy: {_fault: down}, billing: {}}
+steps: [{start: {}}]
+expect:
+  status: blocked
+  blockers: ["pharmacy:system_unavailable"]
+  actions: []
+  audit_contains: ["unreachable after 3 attempts", "No automated action"]

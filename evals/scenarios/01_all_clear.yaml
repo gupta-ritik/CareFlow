@@ -1,0 +1,6 @@
+name: All departments already clear (cashless)
+group: Happy path
+patient: {payer_type: cashless, payer: Star Health (cashless)}
+records: {documentation: {}, pharmacy: {}, insurance: {}, billing: {}}
+steps: [{start: {}}]
+expect: {status: cleared, blockers: [], actions: []}

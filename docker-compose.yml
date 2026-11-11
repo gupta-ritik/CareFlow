@@ -1,0 +1,113 @@
+# Local / evaluation stack. `docker compose up --build -d`, then open http://localhost:3000
+# First visit opens the setup page: name the hospital and create the administrator account.
+# For a real deployment use docker-compose.prod.yml (HTTPS, backups, no exposed database) - see docs/deployment.md.
+name: careflow
+
+x-backend-env: &backend-env
+  CAREFLOW_ENV: production               # tables come from `alembic upgrade head` (run by the api container)
+  # Neon: `neon env pull` writes DATABASE_URL (pooled) into .env and it is used here. Without it, the local postgres container.
+  # Neon: prefer the direct connection (DATABASE_URL_UNPOOLED). These are long-running processes with small pools, and
+  # the direct host keeps asyncpg's statement cache: one round trip per repeated query instead of two.
+  CAREFLOW_DATABASE_URL: ${CAREFLOW_DATABASE_URL:-${DATABASE_URL_UNPOOLED:-${DATABASE_URL:-postgresql+asyncpg://careflow:careflow@postgres:5432/careflow}}}
+  CAREFLOW_REDIS_URL: redis://redis:6379/0
+  CAREFLOW_JWT_SECRET: ${CAREFLOW_JWT_SECRET:?Set CAREFLOW_JWT_SECRET in .env (openssl rand -hex 32)}
+  CAREFLOW_GROQ_API_KEY: ${CAREFLOW_GROQ_API_KEY:-}
+  CAREFLOW_LLM_MODE: ${CAREFLOW_LLM_MODE:-auto}
+  CAREFLOW_CORS_ORIGINS: ${CAREFLOW_CORS_ORIGINS:-["http://localhost:3000"]}
+  CAREFLOW_API_DOCS: ${CAREFLOW_API_DOCS:-true}
+  CAREFLOW_EXECUTIVE_CACHE_SECONDS: ${CAREFLOW_EXECUTIVE_CACHE_SECONDS:-15}
+  CAREFLOW_DB_POOL_SIZE: ${CAREFLOW_DB_POOL_SIZE:-5}
+  CAREFLOW_DB_MAX_OVERFLOW: ${CAREFLOW_DB_MAX_OVERFLOW:-5}
+  CAREFLOW_DB_STATS: ${CAREFLOW_DB_STATS:-false}
+  CAREFLOW_FHIR_BASE_URL: ${CAREFLOW_FHIR_BASE_URL:-}   # e.g. http://hapi:8080/fhir with `--profile fhir`
+  CAREFLOW_FHIR_TOKEN: ${CAREFLOW_FHIR_TOKEN:-}
+  CAREFLOW_SLA_PHARMACY: ${CAREFLOW_SLA_PHARMACY:-60}
+  CAREFLOW_SLA_DOCUMENTATION: ${CAREFLOW_SLA_DOCUMENTATION:-45}
+  CAREFLOW_SLA_INSURANCE: ${CAREFLOW_SLA_INSURANCE:-90}
+  CAREFLOW_SLA_BILLING: ${CAREFLOW_SLA_BILLING:-45}
+  CAREFLOW_SLA_LABORATORY: ${CAREFLOW_SLA_LABORATORY:-60}
+  CAREFLOW_JWT_TTL_MINUTES: ${CAREFLOW_JWT_TTL_MINUTES:-60}
+  CAREFLOW_LOGIN_MAX_FAILURES: ${CAREFLOW_LOGIN_MAX_FAILURES:-5}
+  CAREFLOW_LOGIN_LOCKOUT_MINUTES: ${CAREFLOW_LOGIN_LOCKOUT_MINUTES:-15}
+  # Hospital system integrations (docs/integrations.md)
+  CAREFLOW_HL7_MLLP_PORT: "2575"
+  CAREFLOW_HL7_TENANT: ${CAREFLOW_HL7_TENANT:-}
+  CAREFLOW_HL7_ALLOWED_HOSTS: ${CAREFLOW_HL7_ALLOWED_HOSTS:-[]}
+  CAREFLOW_HL7_OUTBOUND_HOST: ${CAREFLOW_HL7_OUTBOUND_HOST:-}
+  CAREFLOW_HL7_OUTBOUND_PORT: ${CAREFLOW_HL7_OUTBOUND_PORT:-2575}
+  CAREFLOW_HIS_WEBHOOK_URL: ${CAREFLOW_HIS_WEBHOOK_URL:-}
+  CAREFLOW_TPA_WEBHOOK_URL: ${CAREFLOW_TPA_WEBHOOK_URL:-}
+  CAREFLOW_PHARMACY_WEBHOOK_URL: ${CAREFLOW_PHARMACY_WEBHOOK_URL:-}
+  CAREFLOW_LIS_WEBHOOK_URL: ${CAREFLOW_LIS_WEBHOOK_URL:-}
+  CAREFLOW_OUTBOUND_SECRET: ${CAREFLOW_OUTBOUND_SECRET:-}
+  LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+  LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment: {POSTGRES_USER: careflow, POSTGRES_PASSWORD: careflow, POSTGRES_DB: careflow}
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U careflow"], interval: 5s, retries: 20}
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["6379:6379"]
+    volumes: [redisdata:/data]
+    healthcheck: {test: ["CMD", "redis-cli", "ping"], interval: 5s, retries: 20}
+    restart: unless-stopped
+
+  hapi:
+    image: hapiproject/hapi:latest
+    profiles: [fhir]                      # `docker compose --profile fhir up` to include it
+    ports: ["8080:8080"]
+
+  api:
+    build: ./backend
+    environment:
+      <<: *backend-env
+      CAREFLOW_EMBEDDED_WORKER: "false"
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    command: ["python", "-m", "app.worker"]
+    environment: *backend-env
+    depends_on:
+      api: {condition: service_healthy}
+    deploy: {replicas: 2}                 # two consumers in one group; Redis locks keep one run per workflow
+    restart: unless-stopped
+
+  hl7:
+    build: ./backend
+    command: ["python", "-m", "app.integrations.mllp"]
+    environment: *backend-env
+    ports: ["2575:2575"]                  # HL7 v2 MLLP listener for the HIS / interface engine
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      args: {NEXT_PUBLIC_API_BASE: http://localhost:8000/api}
+    ports: ["3000:3000"]
+    depends_on: [api]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

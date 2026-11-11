@@ -1,0 +1,6 @@
+name: Without recorded consent CareFlow stops before reading department systems
+group: Security
+patient: {consent: false}
+records: {documentation: {missing: [attending_signature]}, pharmacy: {}, billing: {}}
+steps: [{start: {}}]
+expect: {status: blocked, blockers: [], actions: [], audit_contains: ["no consent"]}

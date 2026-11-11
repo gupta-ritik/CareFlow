@@ -1,0 +1,10 @@
+name: Restart while paused for approval resumes from the Postgres checkpoint
+group: Infrastructure
+checkpointer: postgres
+records: {documentation: {}, pharmacy: {status: IN_PROGRESS, ordered_ago: 120, assigned_to: null}, billing: {}}
+steps:
+  - start: {}
+  - restart: {}
+  - approve: {action: escalate_pharmacy_task}
+  - patch: {department: pharmacy, patch: {status: DONE}}
+expect: {status: cleared, outcomes: [processed, restarted, decided, processed], actions: [{action: escalate_pharmacy_task, status: verified}]}

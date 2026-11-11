@@ -1,0 +1,17 @@
+name: Two approvals decided out of order, with an event arriving while paused
+group: Approvals
+patient: {payer_type: government, payer: CGHS}
+records:
+  documentation: {}
+  pharmacy: {status: IN_PROGRESS, ordered_ago: 120, assigned_to: null}
+  insurance: {status: PENDING_PAYER, submitted_ago: 30, _fault: timeout}
+  billing: {status: NOT_STARTED}
+steps:
+  - start: {}
+  - patch: {department: insurance, patch: {_fault: null}}
+  - approve: {action: retry_portal_submission}
+  - approve: {action: escalate_pharmacy_task}
+expect:
+  outcomes_contain: ["deferred"]
+  actions: [{action: retry_portal_submission, status: superseded}, {action: escalate_pharmacy_task, status: verified}]
+  blockers: ["pharmacy:pharmacy_delay", "billing:waiting_on_dependency"]

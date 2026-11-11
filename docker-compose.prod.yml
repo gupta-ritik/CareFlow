@@ -1,0 +1,175 @@
+# Production stack. Everything here is free and open source.
+#
+#   cp .env.production.example .env.production   # fill in every value
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# - Caddy terminates HTTPS with a free, auto-renewing Let's Encrypt certificate for CAREFLOW_DOMAIN and serves the
+#   web app and API on one origin (https://your-domain and https://your-domain/api).
+# - PostgreSQL and Redis are on a private network only; nothing but 80/443 (and 2575 for HL7, if you enable it) is published.
+# - A backup container takes a compressed pg_dump every night and keeps CAREFLOW_BACKUP_KEEP_DAYS days of them in ./backups.
+# See docs/deployment.md for the full checklist (firewall, restore drill, upgrades).
+name: careflow-prod
+
+x-backend-env: &backend-env
+  CAREFLOW_ENV: production
+  # Neon (Lakebase Postgres): set DATABASE_URL (pooled) in .env.production. Otherwise the self-hosted postgres service is used.
+  CAREFLOW_DATABASE_URL: ${DATABASE_URL_UNPOOLED:-${DATABASE_URL:-postgresql+asyncpg://careflow:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/careflow}}
+  CAREFLOW_REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
+  CAREFLOW_JWT_SECRET: ${CAREFLOW_JWT_SECRET:?set CAREFLOW_JWT_SECRET (openssl rand -hex 32)}
+  CAREFLOW_JWT_TTL_MINUTES: ${CAREFLOW_JWT_TTL_MINUTES:-480}
+  CAREFLOW_CORS_ORIGINS: '["https://${CAREFLOW_DOMAIN:?set CAREFLOW_DOMAIN}"]'
+  CAREFLOW_API_DOCS: "false"
+  CAREFLOW_EXECUTIVE_CACHE_SECONDS: ${CAREFLOW_EXECUTIVE_CACHE_SECONDS:-15}
+  CAREFLOW_DB_POOL_SIZE: ${CAREFLOW_DB_POOL_SIZE:-5}
+  CAREFLOW_DB_MAX_OVERFLOW: ${CAREFLOW_DB_MAX_OVERFLOW:-5}
+  CAREFLOW_DB_STATS: "false"
+  CAREFLOW_GROQ_API_KEY: ${CAREFLOW_GROQ_API_KEY:-}
+  CAREFLOW_LLM_MODE: ${CAREFLOW_LLM_MODE:-auto}
+  CAREFLOW_FHIR_BASE_URL: ${CAREFLOW_FHIR_BASE_URL:-}
+  CAREFLOW_FHIR_TOKEN: ${CAREFLOW_FHIR_TOKEN:-}
+  CAREFLOW_OIDC_JWKS_URL: ${CAREFLOW_OIDC_JWKS_URL:-}
+  CAREFLOW_OIDC_AUDIENCE: ${CAREFLOW_OIDC_AUDIENCE:-}
+  CAREFLOW_SLA_PHARMACY: ${CAREFLOW_SLA_PHARMACY:-60}
+  CAREFLOW_SLA_DOCUMENTATION: ${CAREFLOW_SLA_DOCUMENTATION:-45}
+  CAREFLOW_SLA_INSURANCE: ${CAREFLOW_SLA_INSURANCE:-90}
+  CAREFLOW_SLA_BILLING: ${CAREFLOW_SLA_BILLING:-45}
+  CAREFLOW_SLA_LABORATORY: ${CAREFLOW_SLA_LABORATORY:-60}
+  CAREFLOW_LOGIN_MAX_FAILURES: ${CAREFLOW_LOGIN_MAX_FAILURES:-5}
+  CAREFLOW_LOGIN_LOCKOUT_MINUTES: ${CAREFLOW_LOGIN_LOCKOUT_MINUTES:-15}
+  CAREFLOW_HL7_MLLP_PORT: "2575"
+  CAREFLOW_HL7_TENANT: ${CAREFLOW_HL7_TENANT:-}
+  CAREFLOW_HL7_ALLOWED_HOSTS: ${CAREFLOW_HL7_ALLOWED_HOSTS:-[]}
+  CAREFLOW_HL7_OUTBOUND_HOST: ${CAREFLOW_HL7_OUTBOUND_HOST:-}
+  CAREFLOW_HL7_OUTBOUND_PORT: ${CAREFLOW_HL7_OUTBOUND_PORT:-2575}
+  CAREFLOW_HIS_WEBHOOK_URL: ${CAREFLOW_HIS_WEBHOOK_URL:-}
+  CAREFLOW_TPA_WEBHOOK_URL: ${CAREFLOW_TPA_WEBHOOK_URL:-}
+  CAREFLOW_PHARMACY_WEBHOOK_URL: ${CAREFLOW_PHARMACY_WEBHOOK_URL:-}
+  CAREFLOW_LIS_WEBHOOK_URL: ${CAREFLOW_LIS_WEBHOOK_URL:-}
+  CAREFLOW_OUTBOUND_SECRET: ${CAREFLOW_OUTBOUND_SECRET:-}
+
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "20m", max-file: "5"}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: careflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: careflow
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [internal]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U careflow"], interval: 10s, retries: 20}
+    restart: unless-stopped
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes: [redisdata:/data]
+    networks: [internal]
+    healthcheck: {test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"], interval: 10s, retries: 20}
+    environment: {REDIS_PASSWORD: "${REDIS_PASSWORD}"}
+    restart: unless-stopped
+    logging: *logging
+
+  api:
+    build: ./backend
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips '*'"]
+    environment:
+      <<: *backend-env
+      CAREFLOW_EMBEDDED_WORKER: "false"
+    networks: [internal]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+    logging: *logging
+
+  worker:
+    build: ./backend
+    command: ["python", "-m", "app.worker"]
+    environment: *backend-env
+    networks: [internal]
+    depends_on:
+      api: {condition: service_healthy}
+    deploy: {replicas: 2}
+    restart: unless-stopped
+    logging: *logging
+
+  hl7:
+    build: ./backend
+    command: ["python", "-m", "app.integrations.mllp"]
+    environment: *backend-env
+    networks: [internal]
+    # Publish only if a hospital system will connect over MLLP, and firewall it to that system's address.
+    ports: ["${CAREFLOW_HL7_BIND:-127.0.0.1}:2575:2575"]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+    logging: *logging
+
+  web:
+    build:
+      context: ./web
+      args: {NEXT_PUBLIC_API_BASE: /api}    # same origin as the site, through Caddy
+    networks: [internal]
+    depends_on: [api]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      CAREFLOW_DOMAIN: ${CAREFLOW_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    networks: [internal]
+    depends_on: [web, api]
+    restart: unless-stopped
+    logging: *logging
+
+  backup:
+    image: pgvector/pgvector:pg16
+    environment:
+      PGHOST: postgres
+      PGUSER: careflow
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: careflow
+      KEEP_DAYS: ${CAREFLOW_BACKUP_KEEP_DAYS:-14}
+      BACKUP_HOUR: ${CAREFLOW_BACKUP_HOUR:-2}
+    volumes:
+      - ./backups:/backups
+      - ./deploy/backup.sh:/backup.sh:ro
+    entrypoint: ["sh", "/backup.sh"]
+    networks: [internal]
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: unless-stopped
+    logging: *logging
+
+networks:
+  internal:
+
+volumes:
+  pgdata:
+  redisdata:
+  caddydata:
+  caddyconfig:

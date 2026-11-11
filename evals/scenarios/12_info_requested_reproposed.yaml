@@ -1,0 +1,10 @@
+name: Request for more information leads to a re-proposal
+group: Approvals
+records: {documentation: {}, pharmacy: {status: IN_PROGRESS, ordered_ago: 120, assigned_to: null}, billing: {}}
+steps:
+  - start: {}
+  - request_information: {action: escalate_pharmacy_task, comment: "Which SOP allows this?"}
+expect:
+  status: awaiting_approval
+  actions: [{action: escalate_pharmacy_task, status: info_requested, count: 1}, {action: escalate_pharmacy_task, status: pending, count: 1}]
+  audit_contains: ["Asked for more information"]

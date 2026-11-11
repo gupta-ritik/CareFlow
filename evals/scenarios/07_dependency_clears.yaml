@@ -1,0 +1,9 @@
+name: Insurance clears, billing unblocks, then clears
+group: Multiple blockers
+patient: {payer_type: cashless}
+records: {documentation: {}, pharmacy: {}, insurance: {status: PENDING_PAYER, submitted_ago: 30}, billing: {status: NOT_STARTED}}
+steps:
+  - start: {}
+  - patch: {department: insurance, patch: {status: APPROVED}}
+  - patch: {department: billing, patch: {status: FINAL}}
+expect: {status: cleared, blockers: [], audit_contains: ["resolved"]}

@@ -1,0 +1,11 @@
+name: Rejected action never runs and isn't proposed again
+group: Approvals
+records: {documentation: {}, pharmacy: {status: IN_PROGRESS, ordered_ago: 120, assigned_to: null}, billing: {}}
+steps:
+  - start: {}
+  - reject: {action: escalate_pharmacy_task, comment: Pharmacist already called}
+  - event: {type: PHARMACY_TASK_UPDATED}
+expect:
+  status: blocked
+  blockers: ["pharmacy:pharmacy_delay"]
+  actions: [{action: escalate_pharmacy_task, status: rejected, count: 1}, {action: escalate_pharmacy_task, count: 1}]

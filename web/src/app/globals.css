@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-hanken);
+
+  --color-mist: #eaf1f4;
+  --color-ink: #0f2236;
+  --color-slate: #56677a;
+  --color-faint: #8796a6;
+  --color-tide: #0e8f86;
+  --color-tide-soft: #d5efec;
+  --color-harbor: #2a63c9;
+  --color-harbor-soft: #dde7f8;
+  --color-amber: #c9821b;
+  --color-amber-soft: #f7e9d3;
+  --color-coral: #c8463d;
+  --color-coral-soft: #f6dcd9;
+}
+
+:root {
+  --font-hanken: "Hanken Grotesk Variable";
+  --glass: rgba(255, 255, 255, 0.58);
+  --glass-strong: rgba(255, 255, 255, 0.78);
+  --glass-edge: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 12px 32px -12px rgba(22, 60, 98, 0.18);
+}
+
+html {
+  background: #eaf1f4;
+}
+
+body {
+  color: #0f2236;
+  font-family: var(--font-hanken), system-ui, sans-serif;
+  font-feature-settings: "tnum" 0;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Two soft colour fields that the glass panels blur. Fixed so they stay put while content scrolls. */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(90px);
+  pointer-events: none;
+}
+body::before {
+  width: 46vw;
+  height: 46vw;
+  left: -10vw;
+  top: -14vw;
+  background: radial-gradient(circle, rgba(14, 143, 134, 0.42), rgba(14, 143, 134, 0) 70%);
+}
+body::after {
+  width: 52vw;
+  height: 52vw;
+  right: -14vw;
+  bottom: -18vw;
+  background: radial-gradient(circle, rgba(42, 99, 201, 0.36), rgba(42, 99, 201, 0) 70%);
+}
+
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+.glass-strong {
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid #2a63c9;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@keyframes rail-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.rail-fill {
+  transform-origin: left center;
+  animation: rail-fill 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-fill { animation: none; }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: rgba(255, 255, 255, 0.92); }
+  .glass-strong { background: rgba(255, 255, 255, 0.96); }
+}
+
+@media print {
+  html, body { background: #fff !important; }
+  body::before, body::after, .no-print { display: none !important; }
+  .report { max-width: none; padding: 0; }
+  @page { margin: 16mm; }
+}

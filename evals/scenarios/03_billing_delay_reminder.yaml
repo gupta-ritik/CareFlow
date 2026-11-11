@@ -1,0 +1,5 @@
+name: Final bill late; low-risk reminder runs without a reviewer
+group: Happy path
+records: {documentation: {}, pharmacy: {}, billing: {status: PREPARING, updated_ago: 90}}
+steps: [{start: {}}]
+expect: {status: blocked, blockers: ["billing:billing_delay"], actions: [{action: notify_department, status: verified}]}

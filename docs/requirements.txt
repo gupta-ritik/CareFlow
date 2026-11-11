@@ -1,0 +1,9 @@
+# Documentation site tools (free, open source). Install: pip install -r docs/requirements.txt
+mkdocs==1.6.1
+mkdocs-material==9.8.1
+pymdown-extensions==13.0
+
+# PDF export (python scripts/build_pdf.py); also needs Microsoft Edge or Google Chrome
+mkdocs-print-site-plugin==2.9
+pypdf==7.0.0
+reportlab==5.1.0

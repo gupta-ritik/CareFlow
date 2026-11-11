@@ -1,0 +1,20 @@
+# Keep secrets, caches and local data out of the backend image (the Dockerfile does COPY . .).
+# Settings reach the containers as environment variables from docker compose, not from this folder's .env.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+dump.rdb
+*.rdb
+*.db
+*.sqlite*
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+tests/
+scripts/

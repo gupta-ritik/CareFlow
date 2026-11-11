@@ -1,0 +1,13 @@
+name: Payer asks for a document that doesn't exist; nothing is attached
+group: Multiple blockers
+patient: {payer_type: cashless}
+records:
+  documentation: {}
+  pharmacy: {}
+  insurance: {status: QUERY_RAISED, requested_document: discharge_summary_copy}
+  billing: {status: NOT_STARTED}
+steps: [{start: {}}]
+expect:
+  blockers: ["insurance:payer_query", "billing:waiting_on_dependency"]
+  no_actions: [attach_document_to_claim]
+  actions: [{action: notify_department, status: verified}]

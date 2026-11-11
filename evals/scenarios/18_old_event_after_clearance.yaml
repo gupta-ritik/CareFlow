@@ -1,0 +1,5 @@
+name: A late, stale event after clearance doesn't reopen anything
+group: Verification
+records: {documentation: {}, pharmacy: {}, billing: {}}
+steps: [{start: {}}, {event: {type: PHARMACY_TASK_UPDATED, ago: 300}}]
+expect: {status: cleared, blockers: [], outcomes: [processed, processed]}

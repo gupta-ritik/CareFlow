@@ -1,0 +1,6 @@
+name: Billing waits on insurance; no action is invented for billing
+group: Multiple blockers
+patient: {payer_type: cashless}
+records: {documentation: {}, pharmacy: {}, insurance: {status: PENDING_PAYER, submitted_ago: 30}, billing: {status: NOT_STARTED}}
+steps: [{start: {}}]
+expect: {status: blocked, blockers: ["billing:waiting_on_dependency"], no_actions: [notify_department, create_followup_task]}

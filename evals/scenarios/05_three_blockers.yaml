@@ -1,0 +1,16 @@
+name: Three blockers in three departments at once
+group: Multiple blockers
+patient: {has_lab_orders: true}
+records:
+  documentation: {missing: [attending_signature]}
+  pharmacy: {status: IN_PROGRESS, ordered_ago: 100, assigned_to: null}
+  laboratory: {reports: [{id: DR-1, status: final, acknowledged: false}]}
+  billing: {}
+steps: [{start: {}}]
+expect:
+  status: awaiting_approval
+  blockers: ["documentation:document_incomplete", "pharmacy:pharmacy_delay", "laboratory:lab_unacknowledged"]
+  actions:
+    - {action: create_document_task, status: verified}
+    - {action: request_lab_acknowledgement, status: verified}
+    - {action: escalate_pharmacy_task, status: pending}

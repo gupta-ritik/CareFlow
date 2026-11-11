@@ -1,0 +1,45 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env: {POSTGRES_USER: careflow, POSTGRES_PASSWORD: careflow, POSTGRES_DB: careflow_test}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U careflow" --health-interval 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: pip install -r backend/requirements.txt
+      - run: cd backend && python -m pytest -q
+      - run: python evals/run_evals.py --markdown evals/results.md
+      # Ask CareFlow evals in rule-based fallback mode only (no API key in CI). Fails on any unsupported claim or
+      # identity leak, or if fewer than 80% of the planted findings are found.
+      - run: python evals/ask/run_ask_evals.py --mode fallback --markdown evals/ask/results.md
+        env: {CAREFLOW_LLM_MODE: "off", CAREFLOW_GROQ_API_KEY: ""}
+      - uses: actions/upload-artifact@v4
+        with: {name: eval-results, path: "evals/results.md\nevals/ask/results.md"}
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - run: cd web && npm ci && npm run lint && npm run build
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: pip install -r backend/requirements.txt -r docs/requirements.txt
+      # Reference tables are generated from the code; fail if someone changed the code without regenerating them.
+      - run: python scripts/gen_docs.py --check
+      - run: mkdocs build --strict
+        env: {NO_MKDOCS_2_WARNING: "1"}

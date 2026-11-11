@@ -1,0 +1,193 @@
+# CareFlow documentation site (MkDocs Material, free and open source).
+#   pip install -r docs/requirements.txt
+#   mkdocs serve            -> http://localhost:8001
+#   mkdocs build --strict   -> site/ (fails on any warning or broken link)
+# Reference tables under docs/reference/generated/ come from the code: run `python scripts/gen_docs.py` first.
+
+site_name: CareFlow
+site_description: Administrative discharge clearance for hospitals. Documentation for staff, IT and developers.
+docs_dir: docs
+site_dir: site
+dev_addr: 127.0.0.1:8001
+
+# "Edit this page" links appear once the repository exists. Set both, for example:
+#   CAREFLOW_DOCS_REPO_URL=https://github.com/<you>/careflow   CAREFLOW_DOCS_EDIT_URI=edit/main/docs/
+repo_url: !ENV [CAREFLOW_DOCS_REPO_URL]
+edit_uri: !ENV [CAREFLOW_DOCS_EDIT_URI, ""]
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - content.tabs.link
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+not_in_nav: |
+  /_audit.md
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: getting-started/installation.md
+      - Configuration: getting-started/configuration.md
+      - First-run setup: getting-started/first-run-setup.md
+      - Upgrading: getting-started/upgrading.md
+  - User guide:
+      - A discharge from start to finish: user-guide/discharge-start-to-finish.md
+      - Administrator: user-guide/administrator.md
+      - Hospital director: user-guide/director.md
+      - Discharge coordinator: user-guide/discharge-coordinator.md
+      - Clinician: user-guide/clinician.md
+      - Ward clerk: user-guide/ward-clerk.md
+      - Pharmacy: user-guide/pharmacy.md
+      - Laboratory: user-guide/laboratory.md
+      - Insurance desk: user-guide/insurance-desk.md
+      - Billing: user-guide/billing.md
+      - Housekeeping (beds): user-guide/housekeeping.md
+      - Auditor: user-guide/auditor.md
+  - Concepts:
+      - Workflows: concepts/workflows.md
+      - Departments: concepts/departments.md
+      - Blockers: concepts/blockers.md
+      - Evidence: concepts/evidence.md
+      - Actions and approvals: concepts/actions-and-approvals.md
+      - Verification: concepts/verification.md
+      - Reports: concepts/reports.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Backend: architecture/backend.md
+      - Agents and the graph: architecture/agents.md
+      - Events and Redis: architecture/events-and-redis.md
+      - Data model: architecture/data-model.md
+      - Frontend: architecture/frontend.md
+      - Security design: architecture/security-design.md
+  - Integrations:
+      - HL7 v2: integrations/hl7-v2.md
+      - FHIR: integrations/fhir.md
+      - Pharmacy and LIS connectors: integrations/pharmacy-and-lis.md
+      - TPA and payers: integrations/tpa-and-payers.md
+      - Outbound messages: integrations/outbound.md
+      - Webhooks: integrations/webhooks.md
+  - API:
+      - Authentication: api/authentication.md
+      - Errors: api/errors.md
+      - Auth: api/auth.md
+      - Setup: api/setup.md
+      - Users: api/users.md
+      - Patients: api/patients.md
+      - Workflows: api/workflows.md
+      - Approvals: api/approvals.md
+      - Departments: api/departments.md
+      - Beds: api/beds.md
+      - Reports: api/reports.md
+      - Analytics and audit: api/analytics.md
+      - Director dashboard: api/executive.md
+      - Events: api/events.md
+      - Integrations: api/integrations.md
+      - Knowledge (SOPs): api/knowledge.md
+      - Health: api/health.md
+  - Operations:
+      - Deployment: operations/deployment.md
+      - Backups and restore: operations/backups.md
+      - Monitoring: operations/monitoring.md
+      - Incident runbook: operations/runbook.md
+      - Removing temporary access: operations/temporary-access.md
+      - Secrets and data retention: operations/secrets-and-retention.md
+  - Security:
+      - Roles and permissions: security/roles-and-permissions.md
+      - Authentication and MFA: security/authentication.md
+      - PHI handling: security/phi-handling.md
+      - Audit: security/audit.md
+      - Compliance notes: security/compliance.md
+  - Development:
+      - Repository layout: development/repo-layout.md
+      - Local setup: development/local-setup.md
+      - Conventions: development/conventions.md
+      - Add a department: development/add-a-department.md
+      - Add an action: development/add-an-action.md
+      - Add an agent: development/add-an-agent.md
+      - Add an HL7 message type: development/add-an-hl7-message-type.md
+      - Testing: development/testing.md
+      - Evals: development/evals.md
+      - CI: development/ci.md
+  - Reference:
+      - Environment variables: reference/generated/environment-variables.md
+      - Roles and permissions: reference/generated/roles-and-permissions.md
+      - CLI commands: reference/generated/cli.md
+      - Action catalog: reference/generated/action-catalog.md
+      - Staff actions: reference/generated/staff-actions.md
+      - Blocker kinds: reference/generated/blocker-kinds.md
+      - Event types: reference/generated/event-types.md
+      - API endpoints: reference/generated/api-endpoints.md
+      - Agent graph: reference/generated/agent-graph.md
+      - Database schema: reference/generated/database-schema.md
+      - HL7 and connector mappings: reference/generated/hl7-mapping.md
+      - Glossary: reference/glossary.md
+      - FAQ: reference/faq.md
+      - Changelog: reference/changelog.md
+  - Decisions: decisions/index.md
+  - Current guides:
+      - User guide (current): user-guide.md
+      - Manual test plan: manual-test-plan.md
+      - Deployment (current): deployment.md
+      - Integrations (current): integrations.md
+      - FHIR (current): fhir.md
+      - Security and compliance (current): security-and-compliance.md
+      - Technical reference (current): reference.md

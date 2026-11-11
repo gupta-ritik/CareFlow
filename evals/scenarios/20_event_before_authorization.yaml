@@ -1,0 +1,8 @@
+name: Department events before clinical authorization start nothing
+group: Infrastructure
+records: {documentation: {}, pharmacy: {}, billing: {}}
+steps:
+  - event: {type: PHARMACY_TASK_UPDATED}
+  - event: {type: ENCOUNTER_UPDATED}
+  - start: {}
+expect: {workflows: 1, outcomes: [ignored, ignored, processed], event_status: {ignored: 2}}

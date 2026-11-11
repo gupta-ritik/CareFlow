@@ -1,0 +1,61 @@
+# Render Blueprint for a free demo of CareFlow: API + Redis in Ohio, next to the Neon project (us-east-2).
+# Render dashboard -> New -> Blueprint -> pick this repository. Render asks for the values marked `sync: false`.
+#
+# Free-tier limits that shape this file:
+#   - No background workers and no raw TCP: the event consumer runs inside the API (CAREFLOW_EMBEDDED_WORKER=true)
+#     and hospital systems send HL7 over HTTPS (POST /api/integrations/hl7), not MLLP port 2575.
+#   - The service sleeps after 15 minutes without traffic; the next request waits 30-60 s while it starts.
+#   - Free Key Value has no persistence: a restart loses Redis contents, including unprocessed integration events.
+# Demo and pilot use with synthetic data only. Real patient data needs the self-hosted docker-compose.prod.yml setup.
+services:
+  - type: web
+    name: careflow-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    region: ohio
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: CAREFLOW_ENV
+        value: production
+      - key: CAREFLOW_JWT_SECRET
+        generateValue: true
+      # Neon DIRECT connection string (no -pooler): `neon connection-string production`.
+      # One long-running process with a small pool doesn't need PgBouncer, and the direct host keeps asyncpg's
+      # prepared-statement cache, which saves a round trip per statement.
+      - key: CAREFLOW_DATABASE_URL
+        sync: false
+      - key: CAREFLOW_REDIS_URL
+        fromService:
+          type: keyvalue
+          name: careflow-redis
+          property: connectionString
+      # Your Vercel production origin as a JSON list, no trailing slash: ["https://careflow.vercel.app"]
+      - key: CAREFLOW_CORS_ORIGINS
+        sync: false
+      - key: CAREFLOW_GROQ_API_KEY
+        sync: false
+      - key: CAREFLOW_EMBEDDED_WORKER
+        value: "true"
+      - key: CAREFLOW_API_DOCS
+        value: "false"
+      - key: CAREFLOW_DB_POOL_SIZE
+        value: "5"
+      - key: CAREFLOW_DB_MAX_OVERFLOW
+        value: "5"
+      - key: CAREFLOW_EXECUTIVE_CACHE_SECONDS
+        value: "15"
+      - key: CAREFLOW_JWT_TTL_MINUTES
+        value: "480"
+      - key: PORT
+        value: "8000"
+
+  - type: keyvalue
+    name: careflow-redis
+    region: ohio
+    plan: free
+    # CareFlow keeps its integration event stream in Redis: never evict keys to make room.
+    maxmemoryPolicy: noeviction
+    # Reachable only from services in this Render account (private network), not from the internet.
+    ipAllowList: []

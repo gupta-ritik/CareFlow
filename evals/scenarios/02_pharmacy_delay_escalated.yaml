@@ -1,0 +1,11 @@
+name: Pharmacy delay escalated, approved, then pharmacy finishes
+group: Happy path
+records:
+  documentation: {}
+  pharmacy: {status: IN_PROGRESS, ordered_ago: 120, assigned_to: null}
+  billing: {}
+steps:
+  - start: {}
+  - approve: {action: escalate_pharmacy_task}
+  - patch: {department: pharmacy, patch: {status: DONE}}
+expect: {status: cleared, blockers: [], actions: [{action: escalate_pharmacy_task, status: verified}]}

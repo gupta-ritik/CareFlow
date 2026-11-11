@@ -1,0 +1,5 @@
+name: Slow billing system still completes
+group: Infrastructure
+records: {documentation: {}, pharmacy: {}, billing: {_fault: slow}}
+steps: [{start: {}}]
+expect: {status: cleared, blockers: []}

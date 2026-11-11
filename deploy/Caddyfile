@@ -1,0 +1,37 @@
+# Caddy (free, open source) serves CareFlow over HTTPS with an automatic Let's Encrypt certificate.
+# CAREFLOW_DOMAIN must point (DNS A record) at this server, and ports 80/443 must be reachable for the certificate.
+# For an internal-only hospital network without public DNS, replace the site address with ":443" and add
+# "tls internal" to use Caddy's own CA (install its root certificate on hospital PCs), see docs/deployment.md.
+{
+	email {$ACME_EMAIL}
+}
+
+{$CAREFLOW_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	@api path /api/*
+	handle @api {
+		request_body {
+			max_size 2MB
+		}
+		reverse_proxy api:8000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

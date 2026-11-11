@@ -1,0 +1,12 @@
+name: Patient identity never reaches the model, even when it appears in documents
+group: Security
+patient: {name: Asha Verma, mrn: MRN 5550123}
+records:
+  documentation: {missing: [attending_signature], note: "Asha Verma's son collects at 5pm, call 9876543210. MRN 5550123."}
+  pharmacy: {status: IN_PROGRESS, ordered_ago: 120, assigned_to: null}
+  billing: {}
+fake_llm:
+  PlanOut: {departments: [documentation, pharmacy, billing], dependencies: [], rationale: Self-pay, no lab orders.}
+  ReportOut: {summary: Two blockers remain open.}
+steps: [{start: {}}]
+expect: {prompts_exclude_identifiers: true, blockers: ["documentation:document_incomplete", "pharmacy:pharmacy_delay"]}

@@ -1,0 +1,8 @@
+name: Duplicate and repeated authorization events create one workflow
+group: Infrastructure
+records: {documentation: {}, pharmacy: {}, billing: {}}
+steps:
+  - start: {event_id: auth-1}
+  - event: {type: CLINICAL_DISCHARGE_AUTHORIZED, event_id: auth-1}
+  - event: {type: CLINICAL_DISCHARGE_AUTHORIZED, event_id: auth-2}
+expect: {workflows: 1, outcomes: [processed, duplicate, duplicate], status: cleared}

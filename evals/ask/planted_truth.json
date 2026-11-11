@@ -1,0 +1,169 @@
+{
+  "scenario": "default",
+  "seed": 42,
+  "tenant": "synthetic-hospital",
+  "days": 120,
+  "timezone": "Asia/Kolkata",
+  "start_date": "2026-07-13",
+  "end_date": "2026-11-09",
+  "patterns": [
+    {
+      "id": "tpa_gamma_monday_slowdown",
+      "title": "TPA Gamma slows down on Mondays",
+      "expected_finding": "From about day 60, TPA Gamma's final authorization takes about 2.5 times longer on Mondays than on its other days, which slows insured discharges on Mondays.",
+      "keywords": [
+        "TPA Gamma",
+        "Monday"
+      ],
+      "measures": [
+        "tpa_turnaround",
+        "department_clearance_time",
+        "discharge_time"
+      ],
+      "expect_not_a_trend": false,
+      "effect": {
+        "type": "tpa_turnaround_factor",
+        "tpa": "TPA Gamma",
+        "weekdays": [
+          "mon"
+        ],
+        "factor": 2.5
+      },
+      "start_day": 60,
+      "end_day": null,
+      "start_date": "2026-09-11",
+      "end_date": "2026-11-09",
+      "affected_discharges": 12
+    },
+    {
+      "id": "pharmacy_weekend_afternoon",
+      "title": "Pharmacy short-staffed 14:00-18:00 on weekends",
+      "expected_finding": "Pharmacy clearance takes about 70 minutes longer for discharges authorized between 14:00 and 18:00 on Saturdays and Sundays.",
+      "keywords": [
+        "pharmacy",
+        "weekend",
+        "afternoon"
+      ],
+      "measures": [
+        "department_clearance_time"
+      ],
+      "expect_not_a_trend": false,
+      "effect": {
+        "type": "department_add_minutes",
+        "department": "pharmacy",
+        "weekdays": [
+          "sat",
+          "sun"
+        ],
+        "hours": [
+          14,
+          18
+        ],
+        "minutes": 70
+      },
+      "start_day": 0,
+      "end_day": null,
+      "start_date": "2026-07-13",
+      "end_date": "2026-11-09",
+      "affected_discharges": 188
+    },
+    {
+      "id": "ward_3b_documentation_backlog",
+      "title": "Ward 3B documentation backlog in weeks 10-12",
+      "expected_finding": "In weeks 10 to 12, Ward 3B's discharge summaries were missing the attending signature far more often (about 45% instead of 10%), so documentation blockers and documentation time rose for that ward.",
+      "keywords": [
+        "3B",
+        "documentation",
+        "signature"
+      ],
+      "measures": [
+        "blocker_count",
+        "department_clearance_time"
+      ],
+      "expect_not_a_trend": false,
+      "effect": {
+        "type": "missing_field_rate",
+        "ward": "3B",
+        "field": "attending_signature",
+        "rate": 0.45
+      },
+      "start_day": 63,
+      "end_day": 83,
+      "start_date": "2026-09-14",
+      "end_date": "2026-10-04",
+      "affected_discharges": 51
+    },
+    {
+      "id": "tpa_beta_itemised_bill",
+      "title": "TPA Beta asks for the itemised pharmacy bill",
+      "expected_finding": "TPA Beta asks for the itemised pharmacy bill about 4 times as often as the other payers do, so its claims get more payer queries and take longer.",
+      "keywords": [
+        "TPA Beta",
+        "itemised pharmacy bill",
+        "query"
+      ],
+      "measures": [
+        "payer_query_rate"
+      ],
+      "expect_not_a_trend": false,
+      "effect": {
+        "type": "payer_query_rate_factor",
+        "tpa": "TPA Beta",
+        "document": "itemised_pharmacy_bill",
+        "factor": 4.0
+      },
+      "start_day": 0,
+      "end_day": null,
+      "start_date": "2026-07-13",
+      "end_date": "2026-11-09",
+      "affected_discharges": 135
+    },
+    {
+      "id": "billing_improvement_day_90",
+      "title": "Billing improvement from day 90",
+      "expected_finding": "From about day 90, final bills are prepared about 30% faster than before.",
+      "keywords": [
+        "billing",
+        "faster",
+        "improv"
+      ],
+      "measures": [
+        "department_clearance_time"
+      ],
+      "expect_not_a_trend": false,
+      "effect": {
+        "type": "department_time_factor",
+        "department": "billing",
+        "factor": 0.7
+      },
+      "start_day": 90,
+      "end_day": null,
+      "start_date": "2026-10-11",
+      "end_date": "2026-11-09",
+      "affected_discharges": 490
+    },
+    {
+      "id": "red_herring_slow_day",
+      "title": "One very slow day caused by only 2 patients",
+      "expected_finding": "Not a trend. Day 47 looks very slow, but it had only 2 discharges, which is too few to conclude anything; the agent must say there is not enough evidence.",
+      "keywords": [
+        "not enough evidence"
+      ],
+      "measures": [
+        "discharge_time"
+      ],
+      "expect_not_a_trend": true,
+      "effect": {
+        "type": "slow_day",
+        "discharges": 2,
+        "department": "documentation",
+        "add_minutes": 600
+      },
+      "start_day": 47,
+      "end_day": 47,
+      "start_date": "2026-08-29",
+      "end_date": "2026-08-29",
+      "affected_discharges": 2
+    }
+  ]
+}

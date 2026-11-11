@@ -1,0 +1,104 @@
+# Default synthetic scenario: a normal hospital, plus six planted patterns the Ask CareFlow agent should (or, for the
+# red herring, should NOT) report. Days are counted from the first generated day (day 0). Weekdays and hours are in
+# the hospital's local time (CAREFLOW_TIMEZONE). See backend/app/synthetic/generator.py for how each effect applies.
+name: default
+description: Six wards, mixed payers, with planted slowdowns, a documentation backlog, a payer-query spike, one
+  improvement and one red herring.
+
+baseline:
+  wards: ["1A", "1B", "2A", "2B", "3A", "3B"]
+  beds_per_ward: 24
+  discharges_per_day: [8, 25]        # uniform range on weekdays and Saturdays
+  sunday_factor: 0.5                 # Sundays have about half the discharges
+  peaks: [{hour: 11.0, sd: 1.2, weight: 0.55}, {hour: 16.0, sd: 1.0, weight: 0.45}]   # authorization time of day
+  hours_open: [7, 21]                # authorizations are clipped to this local window
+  payer_mix: {cashless: 0.45, government: 0.15, self_pay: 0.40}
+  tpas: {"TPA Alpha": 0.9, "TPA Beta": 1.0, "TPA Gamma": 1.0, "TPA Delta": 1.25, "TPA Epsilon": 0.85, "TPA Zeta": 1.1}
+  government_schemes: ["PM-JAY (synthetic)", "State health scheme (synthetic)"]
+  lab_orders_rate: 0.35
+  # Log-normal durations in minutes: median and sigma (spread). Medians are typical for an Indian tertiary hospital's
+  # administrative discharge steps; they are assumptions, not measurements.
+  durations:
+    documentation: {median: 70, sigma: 0.45}
+    documentation_fix: {median: 55, sigma: 0.5}       # extra time when a required field is missing
+    pharmacy_ready: {median: 50, sigma: 0.5}
+    pharmacy_reconciliation: {median: 15, sigma: 0.6}
+    lab_final: {median: 60, sigma: 0.5}
+    lab_acknowledge: {median: 25, sigma: 0.6}
+    insurance_submit: {median: 20, sigma: 0.6}
+    insurance_turnaround_cashless: {median: 110, sigma: 0.35}   # submission to final approval
+    insurance_turnaround_government: {median: 150, sigma: 0.35}
+    payer_query_extra: {median: 45, sigma: 0.5}
+    billing_selfpay_start: {median: 30, sigma: 0.5}
+    billing: {median: 50, sigma: 0.4}
+    exit: {median: 35, sigma: 0.5}                      # cleared to "patient has left"
+    approval_decision: {median: 20, sigma: 0.7}
+  rates:
+    missing_attending_signature: 0.10
+    missing_other_field: 0.05
+    payer_query: 0.12
+    pharmacy_escalation_after_minutes: 30      # minutes past the pharmacy SLA before an escalation is proposed
+    approval_rejected: 0.08
+    llm_fallback: 0.15
+  payer_query_documents: ["discharge_summary", "itemised_pharmacy_bill", "investigation_reports", "id_proof"]
+
+patterns:
+  - id: tpa_gamma_monday_slowdown
+    title: TPA Gamma slows down on Mondays
+    start_day: 60
+    end_day: null
+    effect: {type: tpa_turnaround_factor, tpa: TPA Gamma, weekdays: [mon], factor: 2.5}
+    expected_finding: From about day 60, TPA Gamma's final authorization takes about 2.5 times longer on Mondays
+      than on its other days, which slows insured discharges on Mondays.
+    keywords: ["TPA Gamma", "Monday"]
+    measures: [tpa_turnaround, department_clearance_time, discharge_time]
+
+  - id: pharmacy_weekend_afternoon
+    title: Pharmacy short-staffed 14:00-18:00 on weekends
+    start_day: 0
+    end_day: null
+    effect: {type: department_add_minutes, department: pharmacy, weekdays: [sat, sun], hours: [14, 18], minutes: 70}
+    expected_finding: Pharmacy clearance takes about 70 minutes longer for discharges authorized between 14:00 and
+      18:00 on Saturdays and Sundays.
+    keywords: ["pharmacy", "weekend", "afternoon"]
+    measures: [department_clearance_time]
+
+  - id: ward_3b_documentation_backlog
+    title: Ward 3B documentation backlog in weeks 10-12
+    start_day: 63
+    end_day: 83
+    effect: {type: missing_field_rate, ward: "3B", field: attending_signature, rate: 0.45}
+    expected_finding: In weeks 10 to 12, Ward 3B's discharge summaries were missing the attending signature far more
+      often (about 45% instead of 10%), so documentation blockers and documentation time rose for that ward.
+    keywords: ["3B", "documentation", "signature"]
+    measures: [blocker_count, department_clearance_time]
+
+  - id: tpa_beta_itemised_bill
+    title: TPA Beta asks for the itemised pharmacy bill
+    start_day: 0
+    end_day: null
+    effect: {type: payer_query_rate_factor, tpa: TPA Beta, document: itemised_pharmacy_bill, factor: 4.0}
+    expected_finding: TPA Beta asks for the itemised pharmacy bill about 4 times as often as the other payers do,
+      so its claims get more payer queries and take longer.
+    keywords: ["TPA Beta", "itemised pharmacy bill", "query"]
+    measures: [payer_query_rate]
+
+  - id: billing_improvement_day_90
+    title: Billing improvement from day 90
+    start_day: 90
+    end_day: null
+    effect: {type: department_time_factor, department: billing, factor: 0.7}
+    expected_finding: From about day 90, final bills are prepared about 30% faster than before.
+    keywords: ["billing", "faster", "improv"]
+    measures: [department_clearance_time]
+
+  - id: red_herring_slow_day
+    title: One very slow day caused by only 2 patients
+    start_day: 47
+    end_day: 47
+    effect: {type: slow_day, discharges: 2, department: documentation, add_minutes: 600}
+    expected_finding: Not a trend. Day 47 looks very slow, but it had only 2 discharges, which is too few to
+      conclude anything; the agent must say there is not enough evidence.
+    keywords: ["not enough evidence"]
+    expect_not_a_trend: true
+    measures: [discharge_time]
