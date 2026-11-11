@@ -202,3 +202,32 @@ async def test_nothing_is_sent_when_alerts_are_not_configured(sm, tenant, seeded
     ref, attending, minutes = seeded[0]
     await start_for_patient(engine, tenant.id, ref, attending, (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat())
     assert not notify._tasks and called == []
+
+
+async def test_load_examples_third_patient_alerts_the_coordinator(api, sm, configured):
+    """`python -m app.cli load-examples` + authorizing Test Patient Three = a coordinator approval alert (manual phone test)."""
+    import argparse
+
+    from app import cli
+
+    admin = await _admin(api)
+    for name, email, role in (("Ravi Menon", "ravi@sunrise.in", "Discharge coordinator"), ("Dr. Kavya Iyer", "kavya@sunrise.in", "Clinician")):
+        ok(await api.post("/api/users", headers=admin, json={"name": name, "email": email, "role": role, "password": "a-strong-password"}), 201)
+    async with sm() as s:
+        ravi = await s.scalar(select(User).where(User.email == "ravi@sunrise.in"))
+        await notify.save_channel(s, ravi, "telegram", "777", None, "Telegram @ravi")
+        await s.commit()
+
+    await cli.load_examples(argparse.Namespace())
+    t = ok(await api.post("/api/auth/login", json={"email": "kavya@sunrise.in", "password": "a-strong-password"}))
+    doctor = {"authorization": f"Bearer {t['accessToken']}"}
+    patients = ok(await api.get("/api/patients", headers=admin))
+    three = next(p for p in patients if p["mrn"] == "MRN TEST-0003")
+    ok(await api.post(f"/api/patients/{three['ref']}/authorize-discharge", headers=doctor, json={}))
+    for _ in range(100):  # the workflow runs on the event consumer; wait for its alert
+        await _drain()
+        if any(p.get("chat_id") == "777" for m, p in configured if m == "sendMessage"):
+            break
+        await asyncio.sleep(0.1)
+    alert = next(p for m, p in configured if m == "sendMessage" and p.get("chat_id") == "777")
+    assert "Approval needed · Pharmacy" in alert["text"] and "Ward 3A · Bed 11" in alert["text"] and "Escalate pharmacy task" in alert["text"]

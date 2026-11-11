@@ -92,6 +92,10 @@ async def load_examples(args) -> None:
             ("Test Patient Two", "MRN TEST-0002", "Ward 4B", "Bed 3", "Example Insurance (cashless)", "cashless", "Dr. Example", True,
              {"insurance": {"status": "PENDING_PAYER", "submitted_at": (now - timedelta(minutes=20)).isoformat()},
               "laboratory": {"reports": [{"id": "LAB-TEST-1", "status": "final", "acknowledged": False}]}}),
+            # Medicines ordered 90 minutes ago and still not ready: authorizing discharge raises a pharmacy delay at once, and
+            # escalating it needs a Discharge coordinator's approval, so coordinators get an alert (phone alert test).
+            ("Test Patient Three", "MRN TEST-0003", "Ward 3A", "Bed 11", "Self-pay", "self_pay", "Dr. Example", False,
+             {"pharmacy": {"status": "IN_PROGRESS", "ordered_at": (now - timedelta(minutes=90)).isoformat(), "assigned_to": None}}),
         ]
         added = 0
         for name, mrn, ward, bed, payer, ptype, attending, lab, overrides in examples:
@@ -150,7 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
     r = sub.add_parser("reset-password", help="Set a new password for an account and unlock it.")
     r.add_argument("--email", required=True, help="Email of the account to reset.")
     r.add_argument("--password", help="New password (12+ characters). Omit to be asked without echoing it.")
-    sub.add_parser("load-examples", help="Add two clearly labelled test patients, admitted but not yet authorized.")
+    sub.add_parser("load-examples", help="Add three clearly labelled test patients, admitted but not yet authorized (the third tests coordinator alerts).")
     sub.add_parser("sync-beds", help="Fill the bed board from admitted patients' ward and bed (run once after upgrading).")
     sub.add_parser("vapid-keys", help="Print a new key pair for push notifications (CAREFLOW_VAPID_PUBLIC_KEY / _PRIVATE_KEY).")
     return ap
