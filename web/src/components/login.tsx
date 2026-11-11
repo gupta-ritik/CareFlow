@@ -3,18 +3,20 @@
 import clsx from "clsx";
 import {
   ArrowRight,
+  BedDouble,
+  Building2,
+  Check,
   ClipboardCheck,
   ClipboardList,
   Eye,
   EyeOff,
+  FileSearch,
   FlaskConical,
-  Gauge,
-  History,
   Lock,
   Pill,
+  Play,
   Receipt,
   ShieldCheck,
-  Sparkles,
   Stethoscope,
   type LucideIcon,
 } from "lucide-react";
@@ -26,16 +28,17 @@ import { demoInfo, demoLogin, login, runSetup, setupStatus } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import type { DemoInfo } from "@/lib/types";
 
-const ROLE_ICON: Record<string, LucideIcon> = {
-  director: Gauge,
-  coordinator: ClipboardCheck,
-  clinician: Stethoscope,
-  "ward-clerk": ClipboardList,
-  pharmacy: Pill,
-  laboratory: FlaskConical,
-  insurance: ShieldCheck,
-  billing: Receipt,
-  auditor: History,
+/** Demo role cards: icon, colour and a short, accurate summary of what the role does in CareFlow. */
+const ROLE_META: Record<string, { icon: LucideIcon; blurb: string; tile: string }> = {
+  director: { icon: Building2, blurb: "Overview, performance & approvals", tile: "bg-tide-soft text-tide-deep" },
+  coordinator: { icon: ClipboardCheck, blurb: "Discharge planning & approvals", tile: "bg-violet-soft text-violet" },
+  clinician: { icon: Stethoscope, blurb: "Authorizes discharge, documentation", tile: "bg-harbor-soft text-harbor" },
+  "ward-clerk": { icon: BedDouble, blurb: "Admissions, beds & documents", tile: "bg-[#e0f4f7] text-[#0e7490]" },
+  pharmacy: { icon: Pill, blurb: "Discharge medicines & reconciliation", tile: "bg-[#fde8f0] text-[#be185d]" },
+  laboratory: { icon: FlaskConical, blurb: "Lab reports & acknowledgements", tile: "bg-[#efe9fb] text-[#6d28d9]" },
+  insurance: { icon: ShieldCheck, blurb: "Payer authorization & queries", tile: "bg-[#fdeedd] text-[#c2410c]" },
+  billing: { icon: Receipt, blurb: "Final bill & settlement", tile: "bg-amber-soft text-amber-ink" },
+  auditor: { icon: FileSearch, blurb: "Compliance & audit, read-only", tile: "bg-success-soft text-success" },
 };
 
 /** Two-column frame: brand story on the left (desktop), the task on the right. */
@@ -82,7 +85,7 @@ function AuthFrame({ children }: { children: ReactNode }) {
         <p className="relative text-xs text-white/45">Not a certified medical device. Use synthetic data unless your deployment is approved for patient data.</p>
       </aside>
       <main id="main" className="flex items-start justify-center px-4 py-10 sm:px-8 lg:items-center lg:py-12">
-        <div className="w-full max-w-[460px]">
+        <div className="w-full max-w-[540px]">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
             <Mark size={30} />
             <span className="text-lg font-bold text-ink">CareFlow</span>
@@ -110,12 +113,13 @@ function DemoRoles({ info }: { info: Extract<DemoInfo, { enabled: true }> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const chosen = info.roles.find((r) => r.key === selected);
 
-  const enter = async () => {
+  const enter = async (key = selected) => {
     setBusy(true);
     setError(null);
     try {
-      const r = await demoLogin(selected);
+      const r = await demoLogin(key);
       signIn(r.accessToken, r.user);
       router.replace(r.home);
     } catch (err) {
@@ -125,7 +129,12 @@ function DemoRoles({ info }: { info: Extract<DemoInfo, { enabled: true }> }) {
   };
 
   const onKey = (e: React.KeyboardEvent, i: number) => {
-    const cols = window.matchMedia("(min-width: 640px)").matches ? 3 : 2;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void enter(info.roles[i].key);
+      return;
+    }
+    const cols = window.matchMedia("(min-width: 640px)").matches ? 2 : 1;
     const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
     if (step === undefined) return;
     e.preventDefault();
@@ -134,26 +143,35 @@ function DemoRoles({ info }: { info: Extract<DemoInfo, { enabled: true }> }) {
     refs.current[next]?.focus();
   };
 
-  const chosen = info.roles.find((r) => r.key === selected);
   return (
-    <section aria-labelledby="demo-title" className="rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
-      <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-tide-soft text-tide-deep">
-          <Sparkles className="size-[18px]" aria-hidden />
+    <section aria-labelledby="demo-title">
+      <div className="flex flex-col gap-4 rounded-2xl border border-tide/20 bg-gradient-to-r from-tide-soft/80 to-[#eef8f6] p-4 sm:flex-row sm:items-center">
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-tide-deep text-white shadow-[0_4px_10px_-2px_rgba(8,127,117,0.45)]">
+          <Play className="ml-0.5 size-[18px] fill-current" aria-hidden />
         </span>
-        <div>
-          <h2 id="demo-title" className="text-[15px] font-semibold text-ink">
-            Explore the live demo
+        <div className="min-w-0 flex-1">
+          <h2 id="demo-title" className="text-[16px] font-bold text-ink">
+            Try the live demo
           </h2>
           <p className="mt-0.5 text-[13px] leading-relaxed text-slate">
-            No account needed. A fictional hospital with synthetic patients; data resets every {info.resetHours} hours.
+            No account needed. A fictional hospital with fresh data, reset every {info.resetHours} hours.
           </p>
         </div>
+        <Button variant="secondary" className="shrink-0 border-tide-deep text-tide-deep hover:bg-surface" loading={busy} onClick={() => enter()}>
+          Explore Demo {!busy && <ArrowRight className="size-4" aria-hidden />}
+        </Button>
       </div>
-      {info.preparing && <p className="mt-3 rounded-lg bg-amber-soft px-3 py-2 text-xs font-medium text-amber-ink">Demo data is being refreshed; some screens fill in over the next minute.</p>}
-      <div role="radiogroup" aria-label="Demo role" className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {info.preparing && (
+        <p className="mt-3 rounded-lg bg-amber-soft px-3 py-2 text-xs font-medium text-amber-ink">Demo data is being refreshed; some screens fill in over the next minute.</p>
+      )}
+
+      <h2 className="mt-7 text-[22px] font-bold tracking-[-0.01em] text-ink">Choose your role</h2>
+      <p className="mt-1 text-sm text-slate">Explore CareFlow as any role. Pick one, then select Explore Demo, or press Enter.</p>
+
+      <div role="radiogroup" aria-label="Demo role" className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         {info.roles.map((r, i) => {
-          const Icon = ROLE_ICON[r.key] ?? ClipboardList;
+          const meta = ROLE_META[r.key] ?? { icon: ClipboardList, blurb: r.description, tile: "bg-surface-2 text-slate" };
+          const Icon = meta.icon;
           const on = r.key === selected;
           return (
             <button
@@ -164,28 +182,41 @@ function DemoRoles({ info }: { info: Extract<DemoInfo, { enabled: true }> }) {
               type="button"
               role="radio"
               aria-checked={on}
+              aria-describedby={`role-${r.key}-desc`}
               tabIndex={on ? 0 : -1}
               onKeyDown={(e) => onKey(e, i)}
               onClick={() => setSelected(r.key)}
-              onDoubleClick={enter}
+              onDoubleClick={() => enter(r.key)}
               title={r.description}
               className={clsx(
-                "flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-colors",
-                on ? "border-tide bg-tide-soft/50 ring-2 ring-tide/20" : "border-line bg-surface hover:border-line-strong hover:bg-surface-2",
+                "relative flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
+                on
+                  ? "border-tide-deep bg-tide-deep text-white shadow-[0_6px_16px_-6px_rgba(8,127,117,0.55)]"
+                  : "border-line bg-surface shadow-[var(--shadow-card)] hover:border-line-strong hover:shadow-[var(--shadow-raised)]",
               )}
             >
-              <Icon className={clsx("size-[18px]", on ? "text-tide-deep" : "text-faint")} aria-hidden />
-              <span className="text-[13px] font-semibold leading-tight text-ink">{r.role}</span>
+              <span className={clsx("grid size-10 shrink-0 place-items-center rounded-[10px]", on ? "bg-white/15 text-white" : meta.tile)}>
+                <Icon className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1 pr-5">
+                <span className={clsx("block text-[14px] font-semibold leading-tight", on ? "text-white" : "text-ink")}>{r.role}</span>
+                <span id={`role-${r.key}-desc`} className={clsx("mt-0.5 line-clamp-2 block text-xs leading-snug", on ? "text-white/85" : "text-slate")}>
+                  {meta.blurb}
+                </span>
+              </span>
+              {on && (
+                <span className="absolute right-2.5 top-2.5 grid size-5 place-items-center rounded-full bg-white text-tide-deep" aria-hidden>
+                  <Check className="size-3.5" strokeWidth={3} />
+                </span>
+              )}
             </button>
           );
         })}
       </div>
-      {chosen && <p className="mt-3 min-h-[2.5rem] text-xs leading-relaxed text-slate">{chosen.description}.</p>}
-      <ErrorText error={error} />
-      <Button variant="good" className="mt-2 w-full" onClick={enter} loading={busy}>
-        {!busy && <ArrowRight className="size-4" aria-hidden />}
-        {busy ? "Opening the demo" : `Enter as ${chosen?.role ?? "demo user"}`}
-      </Button>
+      {chosen && <p className="sr-only" aria-live="polite">{`${chosen.role} selected. ${chosen.description}.`}</p>}
+      <div className="mt-3">
+        <ErrorText error={error} />
+      </div>
     </section>
   );
 }
@@ -262,10 +293,27 @@ export function Login() {
 
   return (
     <AuthFrame>
-      <h1 className="text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink">Sign in</h1>
-      <p className="mt-1.5 text-sm text-slate">Use the account your hospital administrator created for you.</p>
+      <h1 className="sr-only">Sign in to CareFlow</h1>
+      {demo?.enabled && (
+        <>
+          <DemoRoles info={demo} />
+          <div className="my-7 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.08em] text-faint">
+            <span className="h-px flex-1 bg-line" />
+            or sign in with your account
+            <span className="h-px flex-1 bg-line" />
+          </div>
+        </>
+      )}
+      {!demo?.enabled && (
+        <>
+          <p className="text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink" aria-hidden>
+            Sign in
+          </p>
+          <p className="mt-1.5 text-sm text-slate">Use the account your hospital administrator created for you.</p>
+        </>
+      )}
 
-      <form onSubmit={submit} noValidate className="mt-7 flex flex-col gap-4">
+      <form onSubmit={submit} noValidate className={clsx("flex flex-col gap-4", !demo?.enabled && "mt-7")}>
         <Field label="Work email" htmlFor="email" error={emailError}>
           <input
             id="email"
@@ -296,17 +344,6 @@ export function Login() {
           <Lock className="size-3.5" aria-hidden /> Encrypted connection · five wrong attempts lock the account for 15 minutes
         </p>
       </form>
-
-      {demo?.enabled && (
-        <>
-          <div className="my-7 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.08em] text-faint">
-            <span className="h-px flex-1 bg-line" />
-            or
-            <span className="h-px flex-1 bg-line" />
-          </div>
-          <DemoRoles info={demo} />
-        </>
-      )}
 
       <Dialog
         open={forgot}
