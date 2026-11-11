@@ -18,7 +18,7 @@ function Note({ children, tone = "info" }: { children: React.ReactNode; tone?: "
   return (
     <p
       className={
-        tone === "good" ? "rounded-xl bg-tide-soft px-3 py-2 text-sm text-[#0a6b64]" : "rounded-xl bg-harbor-soft/70 px-3 py-2 text-sm text-ink"
+        tone === "good" ? "rounded-xl bg-tide-soft px-3 py-2 text-sm text-success" : "rounded-xl bg-harbor-soft/70 px-3 py-2 text-sm text-ink"
       }
     >
       {children}
@@ -86,7 +86,7 @@ function TelegramLinkHelp({ url, minutes }: { url: string; minutes: number }) {
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-white/80 bg-white/70 p-3">
+    <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface-2 p-3">
       <p className="text-sm text-ink">
         Telegram didn&apos;t open? Use your phone. The link works for {minutes} minutes.
       </p>
@@ -108,7 +108,7 @@ function TelegramLinkHelp({ url, minutes }: { url: string; minutes: number }) {
             </span>
           </li>
           <li>
-            Or <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-harbor hover:underline">open the link again</a>.
+            Or <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-tide-deep hover:underline">open the link again</a>.
           </li>
         </ol>
       </div>
@@ -204,8 +204,8 @@ export function AlertsPanel() {
     });
 
   return (
-    <Panel className="max-w-lg p-5 sm:p-6">
-      <h2 className="text-lg font-bold text-ink">Alerts on your phone</h2>
+    <Panel className="p-5 sm:p-6">
+      <h2 className="text-[15px] font-semibold text-ink">Alerts on your phone</h2>
       <p className="mt-1 text-sm leading-relaxed text-slate">
         Get approvals and reminders for your role as they happen. Alerts show the ward and bed, never patient names.
       </p>
@@ -230,7 +230,7 @@ export function AlertsPanel() {
                   <p>This browser can&apos;t receive alerts. Try Chrome, Edge, Firefox or Safari.</p>
                 ) : thisDevice ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-[#0a6b64]">On for {thisDevice.label}</span>
+                    <span className="font-semibold text-success">On for {thisDevice.label}</span>
                     <Button variant="danger" onClick={turnOff} disabled={!!state.busy}>
                       <BellOff className="size-4" aria-hidden /> Turn off
                     </Button>
@@ -271,7 +271,7 @@ export function AlertsPanel() {
             {anyChannel && (
               <div>
                 <h3 className="font-semibold text-ink">Where your alerts go</h3>
-                <ul className="mt-2 divide-y divide-white/70 rounded-xl bg-white/50">
+                <ul className="mt-2 divide-y divide-line rounded-xl bg-surface-2">
                   {data.channels.map((c) => (
                     <li key={c.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                       <span className="min-w-0 truncate text-ink">

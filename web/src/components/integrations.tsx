@@ -10,13 +10,13 @@ import { useCan } from "@/lib/session";
 import type { IntegrationSystemStatus } from "@/lib/types";
 
 const HEALTH = {
-  ok: { label: "Working", tone: "bg-tide-soft text-[#0a6b64]" },
+  ok: { label: "Working", tone: "bg-tide-soft text-success" },
   degraded: { label: "Errors", tone: "bg-coral-soft text-coral" },
   idle: { label: "No traffic", tone: "bg-ink/[0.06] text-slate" },
 };
 
 const STATUS_TONE: Record<string, string> = {
-  accepted: "text-[#0a6b64]", sent: "text-[#0a6b64]", duplicate: "text-slate", warning: "text-[#8a560c]",
+  accepted: "text-success", sent: "text-success", duplicate: "text-slate", warning: "text-amber-ink",
   error: "text-coral", rejected: "text-coral", failed: "text-coral", skipped: "text-faint",
 };
 
@@ -128,7 +128,7 @@ function Keys() {
         </div>
       )}
       {isPending ? <Skeleton className="mt-3 h-16" /> : (
-        <ul className="mt-3 divide-y divide-white/70 text-sm">
+        <ul className="mt-3 divide-y divide-line text-sm">
           {(data ?? []).map((k) => (
             <li key={k.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <span className="min-w-0">
@@ -169,7 +169,7 @@ function Console() {
       <div className="mt-2 flex items-center gap-3">
         <Button disabled={send.isPending || !text.trim()} onClick={() => send.mutate(text)}><Send className="size-4" aria-hidden /> Send</Button>
         {send.data && (
-          <span className={clsx("text-sm font-semibold", send.data.code === "AA" ? "text-[#0a6b64]" : "text-coral")}>
+          <span className={clsx("text-sm font-semibold", send.data.code === "AA" ? "text-success" : "text-coral")}>
             {send.data.code === "AA" ? "Accepted (AA)" : send.data.code === "AR" ? "Rejected (AR)" : "Error (AE)"}
           </span>
         )}
@@ -205,7 +205,7 @@ function MessageLog() {
       {error ? <p className="mt-3 text-sm text-coral">{error.message}</p> : isPending ? <Skeleton className="mt-3 h-32" /> : data.length === 0 ? (
         <p className="mt-3 text-sm text-slate">No messages yet.</p>
       ) : (
-        <ul className="mt-3 divide-y divide-white/70">
+        <ul className="mt-3 divide-y divide-line">
           {data.map((m) => (
             <li key={m.id} className="py-2.5">
               <details>

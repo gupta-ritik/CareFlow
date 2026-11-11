@@ -1,81 +1,93 @@
 @import "tailwindcss";
 
+/* CareFlow design tokens ("Premium Minimal Healthcare SaaS").
+   Components use these names only (bg-surface, text-ink, border-line, ...), never raw hex, so the palette lives here.
+   Contrast: text tokens are AA on white (ink 14:1, slate 5.9:1, faint 4.6:1). The bright teal (#0d9488) is used for
+   fills and accents; text and filled buttons use tide-deep (5:1 with white). */
 @theme inline {
   --font-sans: var(--font-hanken);
 
-  --color-mist: #eaf1f4;
-  --color-ink: #0f2236;
-  --color-slate: #56677a;
-  --color-faint: #8796a6;
-  --color-tide: #0e8f86;
-  --color-tide-soft: #d5efec;
-  --color-harbor: #2a63c9;
-  --color-harbor-soft: #dde7f8;
-  --color-amber: #c9821b;
-  --color-amber-soft: #f7e9d3;
-  --color-coral: #c8463d;
-  --color-coral-soft: #f6dcd9;
+  /* brand */
+  --color-navy: #10243a;
+  --color-navy-deep: #142b43;
+  --color-tide: #0d9488;
+  --color-tide-deep: #087f75;
+  --color-tide-soft: #ddf4ef;
+  --color-emerald: #059669;
+
+  /* surfaces */
+  --color-mist: #f5f8fa; /* application background */
+  --color-surface: #ffffff;
+  --color-surface-2: #f7fafb;
+  --color-sidebar: #f0f6f6;
+  --color-hover: #edf6f5;
+
+  /* text */
+  --color-ink: #14263d;
+  --color-slate: #52657b;
+  --color-faint: #687a8f;
+  --color-disabled: #aab5c0;
+
+  /* lines */
+  --color-line: #e3eaf0;
+  --color-line-strong: #cfd9e3;
+
+  /* status (each has a soft fill and a readable ink) */
+  --color-success: #16865b;
+  --color-success-soft: #e3f4ec;
+  --color-amber: #d99121;
+  --color-amber-soft: #fbf0dc;
+  --color-amber-ink: #8a5a10;
+  --color-coral: #d94a4a;
+  --color-coral-soft: #fbe6e6;
+  --color-coral-ink: #b23838;
+  --color-harbor: #3576c8;
+  --color-harbor-soft: #e5eefa;
+  --color-violet: #5b4bb0;
+  --color-violet-soft: #ece9f8;
+
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgba(16, 36, 58, 0.04), 0 1px 3px rgba(16, 36, 58, 0.05);
+  --shadow-raised: 0 4px 12px -2px rgba(16, 36, 58, 0.08), 0 2px 4px -2px rgba(16, 36, 58, 0.05);
+  --shadow-overlay: 0 24px 48px -12px rgba(16, 36, 58, 0.22), 0 4px 12px -4px rgba(16, 36, 58, 0.08);
 }
 
 :root {
   --font-hanken: "Hanken Grotesk Variable";
-  --glass: rgba(255, 255, 255, 0.58);
-  --glass-strong: rgba(255, 255, 255, 0.78);
-  --glass-edge: rgba(255, 255, 255, 0.75);
-  --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 12px 32px -12px rgba(22, 60, 98, 0.18);
+  color-scheme: light;
 }
 
 html {
-  background: #eaf1f4;
+  background: var(--color-mist);
 }
 
 body {
-  color: #0f2236;
+  color: var(--color-ink);
+  background: var(--color-mist);
   font-family: var(--font-hanken), system-ui, sans-serif;
-  font-feature-settings: "tnum" 0;
+  font-size: 14px;
+  line-height: 1.5;
   min-height: 100vh;
-  position: relative;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Two soft colour fields that the glass panels blur. Fixed so they stay put while content scrolls. */
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  z-index: -1;
-  border-radius: 9999px;
-  filter: blur(90px);
-  pointer-events: none;
+/* Surfaces. `.glass` / `.glass-strong` are the historical names every module uses; they are now solid cards. */
+.glass,
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-card);
 }
-body::before {
-  width: 46vw;
-  height: 46vw;
-  left: -10vw;
-  top: -14vw;
-  background: radial-gradient(circle, rgba(14, 143, 134, 0.42), rgba(14, 143, 134, 0) 70%);
+.glass-strong,
+.card-raised {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-raised);
 }
-body::after {
-  width: 52vw;
-  height: 52vw;
-  right: -14vw;
-  bottom: -18vw;
-  background: radial-gradient(circle, rgba(42, 99, 201, 0.36), rgba(42, 99, 201, 0) 70%);
-}
-
-.glass {
-  background: var(--glass);
-  border: 1px solid var(--glass-edge);
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-}
-.glass-strong {
-  background: var(--glass-strong);
-  border: 1px solid var(--glass-edge);
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
+.overlay {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-overlay);
 }
 
 .tnum {
@@ -83,9 +95,19 @@ body::after {
 }
 
 :focus-visible {
-  outline: 2px solid #2a63c9;
+  outline: 2px solid var(--color-tide);
   outline-offset: 2px;
   border-radius: 8px;
+}
+
+::selection {
+  background: var(--color-tide-soft);
+}
+
+/* Thin, quiet scrollbars inside panels (the page scrollbar stays native). */
+.scroll-quiet {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
 }
 
 @keyframes rail-fill {
@@ -97,18 +119,65 @@ body::after {
   animation: rail-fill 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .rail-fill { animation: none; }
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.pop-in {
+  animation: pop-in 140ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass { background: rgba(255, 255, 255, 0.92); }
-  .glass-strong { background: rgba(255, 255, 255, 0.96); }
+@keyframes slide-in {
+  from { transform: translateX(16px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.slide-in {
+  animation: slide-in 180ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-in {
+  animation: fade-in 140ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-fill,
+  .pop-in,
+  .slide-in,
+  .fade-in {
+    animation: none;
+  }
+  * {
+    transition-duration: 0ms !important;
+  }
 }
 
 @media print {
-  html, body { background: #fff !important; }
-  body::before, body::after, .no-print { display: none !important; }
-  .report { max-width: none; padding: 0; }
-  @page { margin: 16mm; }
+  html,
+  body {
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .report {
+    max-width: none;
+    padding: 0;
+  }
+  @page {
+    margin: 16mm;
+  }
+}
+
+/* Native selects with a consistent chevron (used by selectClass). */
+.select-chevron {
+  appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2352657b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
 }

@@ -28,7 +28,12 @@ function Stat({ label, value, note, tone }: { label: string; value: string; note
   return (
     <div className="min-w-0">
       <dt className="text-sm text-slate">{label}</dt>
-      <dd className={clsx("tnum mt-0.5 text-2xl font-bold tracking-[-0.02em]", tone === "warn" ? "text-[#8a560c]" : tone === "good" ? "text-[#0a6b64]" : "text-ink")}>
+      <dd
+        className={clsx(
+          "tnum mt-0.5 text-2xl font-bold tracking-[-0.02em]",
+          tone === "warn" ? "text-amber-ink" : tone === "good" ? "text-success" : "text-ink",
+        )}
+      >
         {value}
       </dd>
       {note && <p className="mt-0.5 text-xs text-faint">{note}</p>}
@@ -54,11 +59,29 @@ function Trend({ data }: { data: ExecutiveOverview["trend"] }) {
           <Bar dataKey="discharged" name="Discharged" fill={TIDE} radius={[3, 3, 0, 0]} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
-      <table className="sr-only">
-        <caption>Discharges per day</caption>
-        <thead><tr><th>Date</th><th>Authorized</th><th>Discharged</th><th>Median clearance minutes</th></tr></thead>
-        <tbody>{data.map((d) => <tr key={d.date}><td>{d.date}</td><td>{d.authorized}</td><td>{d.discharged}</td><td>{d.medianClearanceMinutes ?? ""}</td></tr>)}</tbody>
-      </table>
+      <div className="sr-only">
+        <table>
+          <caption>Discharges per day</caption>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Authorized</th>
+              <th>Discharged</th>
+              <th>Median clearance minutes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((d) => (
+              <tr key={d.date}>
+                <td>{d.date}</td>
+                <td>{d.authorized}</td>
+                <td>{d.discharged}</td>
+                <td>{d.medianClearanceMinutes ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -88,19 +111,25 @@ export function Director() {
   return (
     <>
       <PageHeader title="Director dashboard">
-        <p>The whole hospital&apos;s discharge flow at a glance: who is waiting, where it&apos;s stuck, what needs a decision, and how beds and connected systems are doing. Updates every 15 seconds.</p>
+        <p>
+          The whole hospital&apos;s discharge flow at a glance: who is waiting, where it&apos;s stuck, what needs a decision, and how beds and connected systems
+          are doing. Updates every 15 seconds.
+        </p>
       </PageHeader>
 
       <AskPanel />
 
-      <div role="group" aria-label="Time window" className="mb-4 flex w-fit gap-1 rounded-full bg-ink/[0.05] p-1">
+      <div role="group" aria-label="Time window" className="mb-4 flex w-fit gap-1 rounded-[10px] bg-surface-2 p-1 ring-1 ring-inset ring-line">
         {[7, 30, 90].map((n) => (
           <button
             key={n}
             type="button"
             aria-pressed={days === n}
             onClick={() => setDays(n)}
-            className={clsx("rounded-full px-3 py-1.5 text-sm font-semibold", days === n ? "bg-white text-ink shadow-sm" : "text-slate hover:text-ink")}
+            className={clsx(
+              "rounded-[7px] px-3 py-1.5 text-[13px] font-semibold",
+              days === n ? "bg-surface text-ink shadow-[var(--shadow-card)] ring-1 ring-line" : "text-slate hover:text-ink",
+            )}
           >
             Last {n} days
           </button>
@@ -119,14 +148,41 @@ export function Director() {
           {/* ---- census ---- */}
           <Panel strong className="p-5 sm:p-6">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4">
-              <Stat label="Patients in hospital" value={String(d.census.inHospital)} note={`${d.census.awaitingAuthorization} not yet authorized for discharge`} />
-              <Stat label="In discharge clearance" value={String(d.census.inClearance)} note={`${d.census.blocked} blocked, ${d.census.awaitingApproval} need approval`} tone={d.census.blocked ? "warn" : undefined} />
-              <Stat label="Ready to leave" value={String(d.census.readyToDischarge)} note="cleared by every department" tone={d.census.readyToDischarge ? "good" : undefined} />
-              <Stat label="Discharged today" value={String(d.census.dischargedToday)} note={`${d.census.dischargedInWindow} in the last ${d.windowDays} days`} />
+              <Stat
+                label="Patients in hospital"
+                value={String(d.census.inHospital)}
+                note={`${d.census.awaitingAuthorization} not yet authorized for discharge`}
+              />
+              <Stat
+                label="In discharge clearance"
+                value={String(d.census.inClearance)}
+                note={`${d.census.blocked} blocked, ${d.census.awaitingApproval} need approval`}
+                tone={d.census.blocked ? "warn" : undefined}
+              />
+              <Stat
+                label="Ready to leave"
+                value={String(d.census.readyToDischarge)}
+                note="cleared by every department"
+                tone={d.census.readyToDischarge ? "good" : undefined}
+              />
+              <Stat
+                label="Discharged today"
+                value={String(d.census.dischargedToday)}
+                note={`${d.census.dischargedInWindow} in the last ${d.windowDays} days`}
+              />
               <Stat label="Median clearance time" value={mins(d.flow.clearanceMinutes.median)} note={`90% within ${mins(d.flow.clearanceMinutes.p90)}`} />
               <Stat label="Authorization to exit" value={mins(d.flow.authorizationToExitMinutes.median)} note="median, doctor's decision to patient leaving" />
-              <Stat label="Ready but still in bed" value={mins(d.flow.readyToExitMinutes.median)} note="median wait after every department cleared" tone={(d.flow.readyToExitMinutes.median ?? 0) > 60 ? "warn" : undefined} />
-              <Stat label="Bed occupancy" value={d.beds.occupancy === null ? "n/a" : `${Math.round(d.beds.occupancy * 100)}%`} note={`${d.beds.occupied} of ${d.beds.total} beds, ${d.beds.cleaning} being cleaned`} />
+              <Stat
+                label="Ready but still in bed"
+                value={mins(d.flow.readyToExitMinutes.median)}
+                note="median wait after every department cleared"
+                tone={(d.flow.readyToExitMinutes.median ?? 0) > 60 ? "warn" : undefined}
+              />
+              <Stat
+                label="Bed occupancy"
+                value={d.beds.occupancy === null ? "n/a" : `${Math.round(d.beds.occupancy * 100)}%`}
+                note={`${d.beds.occupied} of ${d.beds.total} beds, ${d.beds.cleaning} being cleaned`}
+              />
             </dl>
           </Panel>
 
@@ -148,11 +204,11 @@ export function Director() {
                         <th className="pb-2 text-right font-semibold">Waiting</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/70">
+                    <tbody className="divide-y divide-line">
                       {d.longestWaits.map((w) => (
                         <tr key={w.workflowId}>
                           <td className="py-2.5 pr-3">
-                            <Link href={`/workflows/${w.workflowId}`} className="font-semibold text-ink hover:text-harbor hover:underline">
+                            <Link href={`/workflows/${w.workflowId}`} className="font-semibold text-ink hover:text-tide-deep hover:underline">
                               {w.patient}
                             </Link>
                             <p className="tnum text-xs text-faint">
@@ -160,9 +216,18 @@ export function Director() {
                               {w.bed && `, ${w.bed}`} / {w.mrn}
                             </p>
                           </td>
-                          <td className="py-2.5 pr-3"><WorkflowPill status={w.status} /></td>
-                          <td className="py-2.5 pr-3 text-slate">{w.blockingDepartments.length ? w.blockingDepartments.map((x) => DEPT_LABEL[x]).join(", ") : "nothing"}</td>
-                          <td className={clsx("tnum py-2.5 text-right font-semibold", w.waitMinutes > 180 ? "text-coral" : w.waitMinutes > 90 ? "text-[#8a560c]" : "text-ink")}>
+                          <td className="py-2.5 pr-3">
+                            <WorkflowPill status={w.status} />
+                          </td>
+                          <td className="py-2.5 pr-3 text-slate">
+                            {w.blockingDepartments.length ? w.blockingDepartments.map((x) => DEPT_LABEL[x]).join(", ") : "nothing"}
+                          </td>
+                          <td
+                            className={clsx(
+                              "tnum py-2.5 text-right font-semibold",
+                              w.waitMinutes > 180 ? "text-coral" : w.waitMinutes > 90 ? "text-amber-ink" : "text-ink",
+                            )}
+                          >
                             {duration(w.waitMinutes)}
                           </td>
                         </tr>
@@ -178,10 +243,17 @@ export function Director() {
               <h2 className="text-lg font-bold text-ink">Decisions waiting</h2>
               <p className="mt-1 text-sm text-slate">Actions CareFlow proposed that need a person. As director you can decide any of them.</p>
               <dl className="mt-4 grid grid-cols-2 gap-4">
-                <Stat label="Pending approvals" value={String(d.approvals.pending)} tone={d.approvals.pending ? "warn" : undefined}
-                      note={d.approvals.oldestPendingMinutes !== null ? `oldest ${duration(d.approvals.oldestPendingMinutes)}` : "none waiting"} />
-                <Stat label="Average decision time" value={d.approvals.avgDecisionMinutes === null ? "n/a" : duration(Math.round(d.approvals.avgDecisionMinutes))}
-                      note={`${d.approvals.decided} decided, ${d.approvals.rejected} rejected`} />
+                <Stat
+                  label="Pending approvals"
+                  value={String(d.approvals.pending)}
+                  tone={d.approvals.pending ? "warn" : undefined}
+                  note={d.approvals.oldestPendingMinutes !== null ? `oldest ${duration(d.approvals.oldestPendingMinutes)}` : "none waiting"}
+                />
+                <Stat
+                  label="Average decision time"
+                  value={d.approvals.avgDecisionMinutes === null ? "n/a" : duration(Math.round(d.approvals.avgDecisionMinutes))}
+                  note={`${d.approvals.decided} decided, ${d.approvals.rejected} rejected`}
+                />
               </dl>
               {Object.keys(d.approvals.byRole).length > 0 && (
                 <ul className="mt-4 flex flex-col gap-1.5 text-sm">
@@ -195,7 +267,9 @@ export function Director() {
               )}
               <p className="mt-4 text-sm text-slate">
                 {d.approvals.automaticActions} low-risk reminders ran automatically in this period.{" "}
-                <Link href="/approvals" className="font-semibold text-harbor hover:underline">Open approvals</Link>
+                <Link href="/approvals" className="font-semibold text-tide-deep hover:underline">
+                  Open approvals
+                </Link>
               </p>
             </Panel>
           </div>
@@ -205,7 +279,7 @@ export function Director() {
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-lg font-bold text-ink">Departments</h2>
               {d.bottleneck && (
-                <p className="text-sm text-[#8a560c]">
+                <p className="text-sm text-amber-ink">
                   Current bottleneck: <span className="font-semibold">{DEPT_LABEL[d.bottleneck]}</span>
                 </p>
               )}
@@ -222,13 +296,15 @@ export function Director() {
                     <th className="pb-2 text-right font-semibold">Missed time limits</th>
                   </tr>
                 </thead>
-                <tbody className="tnum divide-y divide-white/70">
+                <tbody className="tnum divide-y divide-line">
                   {d.departments.map((x) => (
                     <tr key={x.department} className={x.department === d.bottleneck ? "bg-amber-soft/40" : undefined}>
                       <td className="py-2.5 pr-3 font-semibold text-ink">
-                        <Link href={`/queue?dept=${x.department}`} className="hover:text-harbor hover:underline">{DEPT_LABEL[x.department]}</Link>
+                        <Link href={`/queue?dept=${x.department}`} className="hover:text-tide-deep hover:underline">
+                          {DEPT_LABEL[x.department]}
+                        </Link>
                       </td>
-                      <td className={clsx("py-2.5 pr-3 text-right", x.openBlockers ? "font-semibold text-[#8a560c]" : "text-slate")}>{x.openBlockers}</td>
+                      <td className={clsx("py-2.5 pr-3 text-right", x.openBlockers ? "font-semibold text-amber-ink" : "text-slate")}>{x.openBlockers}</td>
                       <td className="py-2.5 pr-3 text-right text-slate">{x.oldestBlockerMinutes === null ? "none" : duration(x.oldestBlockerMinutes)}</td>
                       <td className="py-2.5 pr-3 text-right text-slate">{x.pendingTasks}</td>
                       <td className="py-2.5 pr-3 text-right text-slate">{mins(x.avgMinutesToClear)}</td>
@@ -239,7 +315,8 @@ export function Director() {
               </table>
             </div>
             <p className="mt-3 text-xs text-faint">
-              {d.flow.blockersFound} blockers found and {d.flow.blockersResolved} resolved in the last {d.windowDays} days; {d.flow.slaBreaches} were missed time limits (pharmacy, payer or billing delays).
+              {d.flow.blockersFound} blockers found and {d.flow.blockersResolved} resolved in the last {d.windowDays} days; {d.flow.slaBreaches} were missed
+              time limits (pharmacy, payer or billing delays).
             </p>
           </Panel>
 
@@ -256,7 +333,9 @@ export function Director() {
             <Panel className="min-w-0 p-4 sm:p-5">
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="text-lg font-bold text-ink">Beds by ward</h2>
-                <Link href="/beds" className="text-sm font-semibold text-harbor hover:underline">Bed board</Link>
+                <Link href="/beds" className="text-sm font-semibold text-tide-deep hover:underline">
+                  Bed board
+                </Link>
               </div>
               {d.beds.total === 0 ? (
                 <p className="mt-3 text-sm text-slate">No beds recorded yet. Beds appear as patients are admitted, or add them on the Beds page.</p>
@@ -283,10 +362,12 @@ export function Director() {
             <Panel className="min-w-0 p-4 sm:p-5">
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="text-lg font-bold text-ink">Connected systems</h2>
-                <Link href="/integrations" className="text-sm font-semibold text-harbor hover:underline">Details</Link>
+                <Link href="/integrations" className="text-sm font-semibold text-tide-deep hover:underline">
+                  Details
+                </Link>
               </div>
               <p className="mt-1 text-sm text-slate">Messages exchanged in the last 24 hours.</p>
-              <ul className="mt-3 divide-y divide-white/70 text-sm">
+              <ul className="mt-3 divide-y divide-line text-sm">
                 {(Object.keys(SYSTEM_LABEL) as IntegrationSystem[]).map((sys) => {
                   const x = d.integrations[sys];
                   return (

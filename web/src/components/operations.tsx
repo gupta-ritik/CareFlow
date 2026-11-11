@@ -27,7 +27,21 @@ function Figure({ label, value, note }: { label: string; value: string; note?: s
   );
 }
 
-function HBar({ data, valueKey, nameKey, color, unit, height }: { data: Record<string, unknown>[]; valueKey: string; nameKey: string; color: string; unit?: string; height?: number }) {
+function HBar({
+  data,
+  valueKey,
+  nameKey,
+  color,
+  unit,
+  height,
+}: {
+  data: Record<string, unknown>[];
+  valueKey: string;
+  nameKey: string;
+  color: string;
+  unit?: string;
+  height?: number;
+}) {
   return (
     <div style={{ height: height ?? Math.max(120, data.length * 36 + 24) }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -57,7 +71,9 @@ function Export() {
   return (
     <Panel className="p-4 sm:p-5">
       <h2 className="text-lg font-bold text-ink">Export discharges</h2>
-      <p className="mt-1 text-sm text-slate">One row per discharge: authorization, clearance and discharge times, blockers, actions and the slowest department. Opens in Excel or Google Sheets.</p>
+      <p className="mt-1 text-sm text-slate">
+        One row per discharge: authorization, clearance and discharge times, blockers, actions and the slowest department. Opens in Excel or Google Sheets.
+      </p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <label className="text-sm font-semibold text-ink">
           From
@@ -126,12 +142,20 @@ export function Operations() {
             <dl className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4">
               <Figure label="Waiting on administration" value={String(d.activeWorkflows)} note={`${d.blocked} blocked, ${d.awaitingApproval} need approval`} />
               <Figure label="Median wait so far" value={duration(d.medianWaitMinutes)} note="since clinical authorization" />
-              <Figure label="Average clearance time" value={d.avgClearanceMinutes === null ? "n/a" : duration(d.avgClearanceMinutes)} note={`${d.readyToDischarge} ready, ${d.discharged} discharged`} />
+              <Figure
+                label="Average clearance time"
+                value={d.avgClearanceMinutes === null ? "n/a" : duration(d.avgClearanceMinutes)}
+                note={`${d.readyToDischarge} ready, ${d.discharged} discharged`}
+              />
               <Figure label="Needed a person" value={pct(d.humanInterventionRate)} note="of workflows had an action needing approval" />
               <Figure label="Blockers resolved" value={pct(d.recoveryRate)} note="of all blockers found so far" />
               <Figure label="Actions run" value={String(d.actions.total)} note={`${d.actions.automatic} automatic, ${d.actions.needingApproval} reviewed`} />
               <Figure label="Verified in source system" value={String(d.actions.verified)} note={`${d.actions.verificationFailed} failed verification`} />
-              <Figure label="Average decision time" value={d.avgDecisionMinutes === null ? "n/a" : duration(Math.round(d.avgDecisionMinutes))} note="from proposal to reviewer decision" />
+              <Figure
+                label="Average decision time"
+                value={d.avgDecisionMinutes === null ? "n/a" : duration(Math.round(d.avgDecisionMinutes))}
+                note="from proposal to reviewer decision"
+              />
             </dl>
           </Panel>
 
@@ -142,11 +166,29 @@ export function Operations() {
               <div className="mt-3">
                 <HBar data={depts} valueKey="openBlockers" nameKey="name" color="#c9821b" />
               </div>
-              <table className="sr-only">
-                <caption>Open blockers and pending tasks by department</caption>
-                <thead><tr><th>Department</th><th>Open blockers</th><th>Pending tasks</th><th>Average minutes blocked</th></tr></thead>
-                <tbody>{depts.map((x) => <tr key={x.department}><td>{x.name}</td><td>{x.openBlockers}</td><td>{x.pendingTasks}</td><td>{x.avgBlockedMinutes}</td></tr>)}</tbody>
-              </table>
+              <div className="sr-only">
+                <table>
+                  <caption>Open blockers and pending tasks by department</caption>
+                  <thead>
+                    <tr>
+                      <th>Department</th>
+                      <th>Open blockers</th>
+                      <th>Pending tasks</th>
+                      <th>Average minutes blocked</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {depts.map((x) => (
+                      <tr key={x.department}>
+                        <td>{x.name}</td>
+                        <td>{x.openBlockers}</td>
+                        <td>{x.pendingTasks}</td>
+                        <td>{x.avgBlockedMinutes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </Panel>
 
             <Panel className="min-w-0 p-4 sm:p-5">
@@ -170,7 +212,7 @@ export function Operations() {
                       <th className="pb-2 text-right font-semibold">Avg time blocked</th>
                     </tr>
                   </thead>
-                  <tbody className="tnum divide-y divide-white/70">
+                  <tbody className="tnum divide-y divide-line">
                     {depts.map((x) => (
                       <tr key={x.department}>
                         <td className="py-2.5 pr-3 font-semibold text-ink">{x.name}</td>
@@ -188,10 +230,15 @@ export function Operations() {
               <h2 className="text-lg font-bold text-ink">Agent latency</h2>
               <p className="mt-1 text-sm text-slate">
                 Average time per run. Department checks include retries against slow systems.
-                {(agents ?? []).some((a) => a.fallbackCalls > 0 && a.llmCalls === 0) && " LLM agents near 0 ms are running on their rule-based fallback (no Groq key set)."}
+                {(agents ?? []).some((a) => a.fallbackCalls > 0 && a.llmCalls === 0) &&
+                  " LLM agents near 0 ms are running on their rule-based fallback (no Groq key set)."}
               </p>
               <div className="mt-3">
-                {agentRows.length ? <HBar data={agentRows} valueKey="ms" nameKey="name" color="#2a63c9" unit=" ms" /> : <p className="text-sm text-slate">Agent stats need the Auditor or coordinator role.</p>}
+                {agentRows.length ? (
+                  <HBar data={agentRows} valueKey="ms" nameKey="name" color="#2a63c9" unit=" ms" />
+                ) : (
+                  <p className="text-sm text-slate">Agent stats need the Auditor or coordinator role.</p>
+                )}
               </div>
             </Panel>
           </div>

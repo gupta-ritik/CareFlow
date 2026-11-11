@@ -162,7 +162,7 @@ function NumbersDrawer({ answer, onClose }: { answer: AskAnswer; onClose: () => 
               {r.groups.length > 0 && (
                 <div className="mt-3 max-h-64 overflow-auto">
                   <table className="tnum w-full text-left text-sm">
-                    <thead className="sticky top-0 bg-white/80 text-xs text-slate">
+                    <thead className="sticky top-0 bg-white text-xs text-slate">
                       <tr><th className="py-1 pr-2 font-semibold">{r.params.group_by.map((g) => DIM_LABEL[g] ?? g).join(" / ")}</th><th className="py-1 pr-2 font-semibold">Value</th><th className="py-1 font-semibold">Cases</th></tr>
                     </thead>
                     <tbody>
@@ -205,7 +205,7 @@ function Feedback({ turnId }: { turnId: string }) {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate">
       <span>Was this useful?</span>
-      <Button variant="quiet" aria-pressed={rating === 1} aria-label="Yes, useful" onClick={() => submit(1)} className={clsx("!px-2", rating === 1 && "bg-tide-soft text-[#0a6b64]")}>
+      <Button variant="quiet" aria-pressed={rating === 1} aria-label="Yes, useful" onClick={() => submit(1)} className={clsx("!px-2", rating === 1 && "bg-tide-soft text-success")}>
         <ThumbsUp className="size-4" aria-hidden />
       </Button>
       <Button variant="quiet" aria-pressed={rating === -1} aria-label="No, not useful" onClick={() => submit(-1)} className={clsx("!px-2", rating === -1 && "bg-coral-soft text-coral")}>
@@ -218,7 +218,7 @@ function Feedback({ turnId }: { turnId: string }) {
           <Button type="submit" variant="secondary" className="!py-1.5">Send</Button>
         </form>
       )}
-      {sent && <span className="text-[#0a6b64]">Thanks, saved.</span>}
+      {sent && <span className="text-success">Thanks, saved.</span>}
       {error && <span role="alert" className="text-coral">{error}</span>}
     </div>
   );
@@ -227,7 +227,7 @@ function Feedback({ turnId }: { turnId: string }) {
 const STATUS_NOTE: Record<string, { title: string; tone: string }> = {
   refused: { title: "I can't answer that", tone: "bg-coral-soft/70 text-coral" },
   clarify: { title: "One question first", tone: "bg-harbor-soft text-harbor" },
-  no_data: { title: "The data can't answer this", tone: "bg-amber-soft text-[#8a560c]" },
+  no_data: { title: "The data can't answer this", tone: "bg-amber-soft text-amber-ink" },
   error: { title: "Something went wrong", tone: "bg-coral-soft/70 text-coral" },
 };
 
@@ -246,7 +246,7 @@ function AnswerView({ a, onAsk, compact }: { a: AskAnswer; onAsk: (q: string) =>
       ) : (
         <>
           {a.partial && (
-            <p className="w-fit rounded-full bg-amber-soft px-2.5 py-1 text-xs font-semibold text-[#8a560c]">Partial answer: the time limit was reached</p>
+            <p className="w-fit rounded-full bg-amber-soft px-2.5 py-1 text-xs font-semibold text-amber-ink">Partial answer: the time limit was reached</p>
           )}
           <div className="flex flex-col gap-1.5 text-[0.98rem] leading-relaxed text-ink">
             {a.sentences.map((s, i) => (
@@ -286,7 +286,7 @@ function Chips({ items, onPick, disabled }: { items: string[]; onPick: (q: strin
       {items.map((q) => (
         <li key={q}>
           <button type="button" disabled={disabled} onClick={() => onPick(q)}
-            className="rounded-full border border-white/80 bg-white/60 px-3 py-1.5 text-left text-sm text-ink hover:bg-white disabled:opacity-50">
+            className="rounded-full border border-line bg-surface-2 px-3 py-1.5 text-left text-sm text-ink hover:bg-hover disabled:opacity-50">
             {q}
           </button>
         </li>
@@ -431,7 +431,7 @@ export function AskPanel() {
     <Panel strong className="mb-6 p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold tracking-[-0.01em] text-ink">Ask CareFlow</h2>
-        <Link href="/ask" className="inline-flex items-center gap-1 text-sm font-semibold text-harbor hover:underline">
+        <Link href="/ask" className="inline-flex items-center gap-1 text-sm font-semibold text-tide-deep hover:underline">
           Open full page <ChevronRight className="size-4" aria-hidden />
         </Link>
       </div>
@@ -487,7 +487,7 @@ export function AskPage() {
             {sessions.data?.map((s) => (
               <li key={s.id}>
                 <button type="button" onClick={() => open(s.id)} aria-current={state.sessionId === s.id ? "true" : undefined}
-                  className={clsx("w-full rounded-xl px-2.5 py-2 text-left text-sm hover:bg-white/70", state.sessionId === s.id ? "bg-white/80 font-semibold text-ink" : "text-slate")}>
+                  className={clsx("w-full rounded-xl px-2.5 py-2 text-left text-sm hover:bg-hover", state.sessionId === s.id ? "bg-white font-semibold text-ink" : "text-slate")}>
                   <span className="line-clamp-2">{s.title}</span>
                   <span className="text-xs text-faint">{s.turns} question{s.turns === 1 ? "" : "s"} · {new Date(s.updatedAt).toLocaleDateString()}{opening === s.id ? " · opening…" : ""}</span>
                 </button>

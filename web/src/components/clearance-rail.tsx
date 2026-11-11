@@ -67,7 +67,7 @@ export function ClearanceRail({
         className="grid gap-2 sm:[grid-template-columns:var(--rail-cols)]"
         style={{ ["--rail-cols" as string]: `minmax(0,0.9fr) repeat(${tasks.length}, minmax(0,1fr)) minmax(0,0.9fr)` }}
       >
-        <li className="rounded-2xl border border-dashed border-ink/20 bg-white/30 p-3">
+        <li className="rounded-2xl border border-dashed border-ink/20 bg-surface-2 p-3">
           <p className="text-sm font-semibold text-ink">Clinically authorized</p>
           <p className="mt-1 text-xs leading-snug text-slate">Recorded by {authorizedBy}. CareFlow does not make this decision.</p>
         </li>
@@ -81,9 +81,9 @@ export function ClearanceRail({
               className={clsx(
                 "relative overflow-hidden rounded-2xl border p-3",
                 t.status === "cleared" && "border-tide/30 bg-tide-soft/70",
-                t.status === "in_progress" && "border-harbor/25 bg-white/55",
+                t.status === "in_progress" && "border-harbor/25 bg-surface-2",
                 t.status === "blocked" && "border-amber/60 bg-amber-soft/80",
-                t.status === "not_started" && "border-white/70 bg-white/35",
+                t.status === "not_started" && "border-line bg-surface-2",
               )}
             >
               <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ export function ClearanceRail({
         <li
           className={clsx(
             "rounded-2xl border p-3",
-            allClear ? "border-tide/40 bg-tide text-white" : "border-white/70 bg-white/30",
+            allClear ? "border-tide/40 bg-tide text-white" : "border-line bg-surface-2",
           )}
         >
           <p className={clsx("text-sm font-semibold", allClear ? "text-white" : "text-ink")}>Ready to discharge</p>

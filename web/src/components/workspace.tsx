@@ -57,7 +57,7 @@ export function Workspace({ id }: { id: string }) {
           <div className="flex flex-wrap gap-2">
             <Link
               href={`/workflows/${wf.id}/report`}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/80 bg-white/60 px-3.5 py-2 text-sm font-semibold text-ink hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2 text-sm font-semibold text-ink hover:bg-hover"
             >
               <FileText className="size-4" aria-hidden /> Clearance report
             </Link>
@@ -67,7 +67,7 @@ export function Workspace({ id }: { id: string }) {
                 onClick={() => recheck.mutate(wf.id)}
                 disabled={recheck.isPending || wf.status === "awaiting_approval"}
                 title={wf.status === "awaiting_approval" ? "Decide the pending approval first" : "Re-read every department now"}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/80 bg-white/60 px-3.5 py-2 text-sm font-semibold text-ink hover:bg-white disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2 text-sm font-semibold text-ink hover:bg-hover disabled:opacity-50"
               >
                 <RefreshCw className={recheck.isPending ? "size-4 animate-spin" : "size-4"} aria-hidden />
                 {recheck.isPending ? "Re-checking" : "Re-check now"}
@@ -78,7 +78,7 @@ export function Workspace({ id }: { id: string }) {
                 type="button"
                 onClick={() => close.mutate(wf.id)}
                 disabled={close.isPending}
-                className="inline-flex items-center gap-2 rounded-xl bg-tide px-3.5 py-2 text-sm font-semibold text-white hover:bg-[#0b7b73] disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-tide px-3.5 py-2 text-sm font-semibold text-white hover:bg-navy disabled:opacity-60"
               >
                 <DoorOpen className="size-4" aria-hidden />
                 {close.isPending ? "Closing" : "Patient has left: close discharge"}
@@ -125,9 +125,9 @@ export function Workspace({ id }: { id: string }) {
                       </p>
                     )}
 
-                    <div className="mt-3 overflow-hidden rounded-xl border border-white/80 bg-white/60">
-                      <p className="border-b border-white/80 px-3 py-2 text-xs font-semibold text-slate">Evidence</p>
-                      <ul className="divide-y divide-white/80">
+                    <div className="mt-3 overflow-hidden rounded-xl border border-line bg-surface-2">
+                      <p className="border-b border-line px-3 py-2 text-xs font-semibold text-slate">Evidence</p>
+                      <ul className="divide-y divide-line">
                         {b.evidenceIds.map((eid) => {
                           const ev = evidenceById.get(eid);
                           if (!ev) return null;
@@ -170,7 +170,7 @@ export function Workspace({ id }: { id: string }) {
                     <th className="pb-2 text-right font-semibold">Source updated</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/70">
+                <tbody className="divide-y divide-line">
                   {wf.tasks.map((t) => (
                     <tr key={t.id}>
                       <td className="py-2.5 pr-4 font-semibold text-ink">{DEPT_LABEL[t.department]}</td>
@@ -197,7 +197,7 @@ export function Workspace({ id }: { id: string }) {
             ) : (
               <ul className="mt-3 flex flex-col gap-3">
                 {wfActions.map((a) => (
-                  <li key={a.id} className="rounded-2xl bg-white/55 p-4">
+                  <li key={a.id} className="rounded-2xl bg-surface-2 p-4">
                     <div className="flex items-center justify-between gap-2">
                       <code className="text-xs font-semibold text-harbor">{a.action}</code>
                       <RiskTag risk={a.risk} />

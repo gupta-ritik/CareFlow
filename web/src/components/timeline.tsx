@@ -7,7 +7,7 @@ import { EvidenceRef } from "./ui";
 const ACTOR_ICON: Record<ActorKind, typeof Bot> = { agent: Bot, human: UserRound, system: Cog };
 const ACTOR_TONE: Record<ActorKind, string> = {
   agent: "bg-harbor-soft text-harbor",
-  human: "bg-[#e6e1f6] text-[#4b3d93]",
+  human: "bg-violet-soft text-violet",
   system: "bg-ink/[0.06] text-slate",
 };
 

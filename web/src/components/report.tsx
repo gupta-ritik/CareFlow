@@ -29,7 +29,7 @@ export function Report({ id }: { id: string }) {
         </button>
       </div>
 
-      <article className="rounded-[20px] bg-white p-6 text-ink shadow-[0_12px_32px_-12px_rgba(22,60,98,.18)] sm:p-10 print:p-0 print:shadow-none">
+      <article className="rounded-2xl bg-white p-6 text-ink shadow-[0_12px_32px_-12px_rgba(22,60,98,.18)] sm:p-10 print:p-0 print:shadow-none">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-ink/10 pb-5">
           <div>
             <p className="text-sm font-semibold text-slate">{r.hospital}</p>

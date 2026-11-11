@@ -57,7 +57,7 @@ function AdmitForm({ onDone }: { onDone: () => void }) {
         </Button>
       </div>
 
-      <div role="tablist" aria-label="How to add" className="mt-4 flex w-fit gap-1 rounded-full bg-ink/[0.05] p-1">
+      <div role="tablist" aria-label="How to add" className="mt-4 flex w-fit gap-1 rounded-[10px] bg-surface-2 p-1 ring-1 ring-inset ring-line">
         {(["manual", "fhir"] as const).map((m) => (
           <button
             key={m}
@@ -65,7 +65,7 @@ function AdmitForm({ onDone }: { onDone: () => void }) {
             type="button"
             aria-selected={mode === m}
             onClick={() => setMode(m)}
-            className={clsx("rounded-full px-3 py-1.5 text-sm font-semibold", mode === m ? "bg-white text-ink shadow-sm" : "text-slate hover:text-ink")}
+            className={clsx("rounded-[7px] px-3 py-1.5 text-[13px] font-semibold", mode === m ? "bg-surface text-ink shadow-[var(--shadow-card)] ring-1 ring-line" : "text-slate hover:text-ink")}
           >
             {m === "manual" ? "Enter details" : "Import from FHIR"}
           </button>
@@ -155,7 +155,7 @@ function AuthorizeButton({ p }: { p: PatientRecord }) {
       </Button>
     );
   return (
-    <div className="flex w-full flex-col gap-2 rounded-2xl border border-white/80 bg-white/70 p-3 sm:w-80">
+    <div className="flex w-full flex-col gap-2 rounded-2xl border border-line bg-surface-2 p-3 sm:w-80">
       <p className="text-sm text-ink">
         You&apos;re confirming <span className="font-semibold">{p.displayName}</span> is clinically fit to leave. CareFlow then starts administrative clearance.
       </p>
@@ -183,7 +183,7 @@ function ConsentToggle({ p }: { p: PatientRecord }) {
       type="button"
       disabled={update.isPending}
       onClick={() => update.mutate({ ref: p.ref, body: { consentForCoordination: true } })}
-      className="text-xs font-semibold text-harbor hover:underline"
+      className="text-xs font-semibold text-tide-deep hover:underline"
     >
       Record consent
     </button>
@@ -201,7 +201,7 @@ function ArchiveButton({ p }: { p: PatientRecord }) {
       </Button>
     );
   return (
-    <div className="flex w-full flex-col gap-2 rounded-2xl border border-white/80 bg-white/70 p-3 sm:w-80">
+    <div className="flex w-full flex-col gap-2 rounded-2xl border border-line bg-surface-2 p-3 sm:w-80">
       <p className="text-sm text-ink">
         Archive <span className="font-semibold">{p.displayName}</span> ({p.mrn})? They disappear from every list, queue, approval and dashboard, and
         their bed is freed. Nothing is deleted, and the archive is recorded in the audit trail.
@@ -241,7 +241,7 @@ function Row({ p }: { p: PatientRecord }) {
       <div className="min-w-0 text-xs text-slate">
         {p.departments.map((d) => DEPT_LABEL[d]).join(", ")}
         {!p.consentForCoordination && (
-          <p className="mt-1 text-[#8a560c]">
+          <p className="mt-1 text-amber-ink">
             No consent for coordination recorded. {canEdit && <ConsentToggle p={p} />}
           </p>
         )}
@@ -250,12 +250,12 @@ function Row({ p }: { p: PatientRecord }) {
         {p.workflow ? (
           <>
             <WorkflowPill status={p.workflow.status} />
-            <Link href={`/workflows/${p.workflow.id}`} className="rounded-xl px-3 py-2 text-sm font-semibold text-harbor hover:bg-white/60">
+            <Link href={`/workflows/${p.workflow.id}`} className="rounded-xl px-3 py-2 text-sm font-semibold text-harbor hover:bg-hover">
               Open
             </Link>
             <Link
               href={`/workflows/${p.workflow.id}/report`}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate hover:bg-white/60 hover:text-ink"
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate hover:bg-hover hover:text-ink"
             >
               <FileText className="size-4" aria-hidden /> Report
             </Link>
@@ -300,14 +300,14 @@ export function Patients() {
 
       <Panel className="p-2 sm:p-3">
         <div className="flex flex-wrap items-center justify-between gap-3 px-2 pb-2 pt-1">
-          <div role="tablist" aria-label="Patient status" className="flex gap-1 rounded-full bg-ink/[0.05] p-1">
+          <div role="tablist" aria-label="Patient status" className="flex gap-1 rounded-[10px] bg-surface-2 p-1 ring-1 ring-inset ring-line">
             {(["admitted", "discharged"] as const).map((s) => (
               <button
                 key={s}
                 role="tab"
                 aria-selected={status === s}
                 onClick={() => setStatus(s)}
-                className={clsx("rounded-full px-3 py-1.5 text-sm font-semibold", status === s ? "bg-white text-ink shadow-sm" : "text-slate hover:text-ink")}
+                className={clsx("rounded-[7px] px-3 py-1.5 text-[13px] font-semibold", status === s ? "bg-surface text-ink shadow-[var(--shadow-card)] ring-1 ring-line" : "text-slate hover:text-ink")}
               >
                 {s === "admitted" ? "In hospital" : "Discharged"}
               </button>
@@ -344,7 +344,7 @@ export function Patients() {
             {status === "admitted" && !query && canAdmit && <p className="mt-1 text-sm text-slate">Admit the first patient to start using CareFlow.</p>}
           </div>
         ) : (
-          <ul className="divide-y divide-white/70 border-t border-white/70">
+          <ul className="divide-y divide-line border-t border-line">
             {data.map((p) => (
               <Row key={p.ref} p={p} />
             ))}
