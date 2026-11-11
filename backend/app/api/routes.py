@@ -182,7 +182,7 @@ router.add_api_route("/workflows/{code}/resume", recheck, methods=["POST"], stat
 @router.get("/approvals", response_model=list[ActionOut], response_model_by_alias=True)
 async def list_approvals(status: str | None = None, p: Principal = Depends(require("workflow:read")), s: AsyncSession = Depends(get_session)):
     q = (select(ApprovalRequest, Workflow.code).join(Workflow, Workflow.id == ApprovalRequest.workflow_id)
-         .where(Workflow.tenant_id == p.tenant_id).order_by(ApprovalRequest.created_at.desc()))
+         .where(Workflow.tenant_id == p.tenant_id, Workflow.deleted_at.is_(None)).order_by(ApprovalRequest.created_at.desc()))
     if status:
         q = q.where(ApprovalRequest.status == status)
     return [action_out(a, code) for a, code in (await s.execute(q)).all()]

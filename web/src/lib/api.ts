@@ -114,6 +114,8 @@ export const importFhirPatient = (b: { patientId: string; encounterId: string; p
   post<PatientRecord>("/patients/import-fhir", b);
 export const updatePatient = (ref: string, b: Partial<Pick<PatientRecord, "ward" | "bed" | "attending" | "payer" | "hasLabOrders" | "consentForCoordination">>) =>
   patch<PatientRecord>(`/patients/${ref}`, b);
+export const archivePatient = (ref: string, reason: string) =>
+  post<{ ref: string; status: string; workflowsArchived: number }>(`/patients/${ref}/archive`, { reason });
 export const authorizeDischarge = (ref: string, note: string) =>
   post<{ workflowId: string; status: string }>(`/patients/${ref}/authorize-discharge`, { note: note || null });
 

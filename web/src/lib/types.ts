@@ -184,7 +184,7 @@ export interface PatientRecord {
   admittedAt: string;
   hasLabOrders: boolean;
   consentForCoordination: boolean;
-  status: "admitted" | "discharged";
+  status: "admitted" | "discharged" | "archived";
   source: "manual" | "fhir";
   departments: Department[];
   workflow: { id: string; status: WorkflowStatus } | null;

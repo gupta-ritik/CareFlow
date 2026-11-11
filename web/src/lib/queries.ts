@@ -86,6 +86,11 @@ export function useUpdatePatient() {
   });
 }
 
+export function useArchivePatient() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: (v: { ref: string; reason: string }) => api.archivePatient(v.ref, v.reason), onSuccess: invalidate });
+}
+
 export function useAuthorize() {
   const invalidate = useInvalidateAll();
   return useMutation({ mutationFn: (v: { ref: string; note: string }) => api.authorizeDischarge(v.ref, v.note), onSuccess: invalidate });

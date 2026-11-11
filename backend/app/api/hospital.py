@@ -19,7 +19,7 @@ from ..config import get_settings
 from ..db import get_session
 from ..fhir import FhirClient, FhirError, fetch_patient_context
 from ..models import (ApprovalRequest, AuditLog, Blocker, Patient, Role, SimDepartmentRecord, Tenant, User, Workflow, WorkflowTask, utcnow)
-from ..repo import ensure_counters
+from ..repo import audit, ensure_counters
 from ..security import (ADMIN, AUDITOR, DEPT_PERMISSIONS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS, Principal, create_token, current_principal,
                         hash_password, password_problem, require, verify_password)
 from ..integrations import outbound
@@ -387,6 +387,35 @@ async def close_discharge(code: str, request: Request, p: Principal = Depends(re
     for b in released:
         outbound.notify(sm, p.tenant_id, "his", "bed.status_changed", {"ward": b.ward, "bed": b.bed, "status": b.status})
     return {"workflowId": code, "status": "discharged", "bedsReleased": [f"{b.ward}/{b.bed}" for b in released]}
+
+
+class ArchiveIn(In):
+    reason: str = Field("Test or demo patient", max_length=500)
+
+
+@router.post("/patients/{ref}/archive")
+async def archive_patient(ref: str, request: Request, body: ArchiveIn = ArchiveIn(), p: Principal = Depends(require("user:manage")),
+                          s: AsyncSession = Depends(get_session)):
+    """Administrator only: take a patient (typically a test patient) out of every list, queue, approval and dashboard.
+
+    Nothing is deleted: the patient row, workflows and audit trail stay in the database (status "archived", workflows
+    soft-deleted), and the archive itself is recorded in the audit trail."""
+    pt = await s.scalar(select(Patient).where(Patient.tenant_id == p.tenant_id, Patient.ref == ref))
+    if pt is None:
+        raise HTTPException(404, "Patient not found.")
+    if pt.status == "archived":
+        raise HTTPException(409, "This patient is already archived.")
+    now, by = utcnow(), f"{p.name} ({p.role})"
+    wfs = (await s.scalars(select(Workflow).where(Workflow.patient_id == pt.id, Workflow.deleted_at.is_(None)))).all()
+    for wf in wfs:
+        wf.deleted_at = now
+    pt.status = "archived"
+    released = await release_bed(s, p.tenant_id, pt.ref, by)
+    code = wfs[-1].code if wfs else "-"
+    await audit(s, p.tenant_id, code, "human", by, "Archived patient", f"{pt.mrn}: {body.reason.strip() or 'no reason given'}")
+    await s.commit()
+    await Cache(getattr(request.app.state, "redis", None)).bump(executive_scope(p.tenant_id))  # census changed
+    return {"ref": pt.ref, "status": "archived", "workflowsArchived": len(wfs), "bedsReleased": [f"{b.ward}/{b.bed}" for b in released]}
 
 
 # ===== department work queues =========================================================================

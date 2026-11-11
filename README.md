@@ -128,7 +128,11 @@ Quickest way to see the whole flow:
 5. Sign in as the **Discharge coordinator**: decide anything on **Approvals**, then close the discharge.
 6. Sign in as the **Hospital director** to see it all on the **Director dashboard**.
 
-Want sample patients? `docker exec careflow-api-1 python -m app.cli load-examples` adds two clearly named ones.
+Want sample patients? `docker exec careflow-api-1 python -m app.cli load-examples` adds three clearly named ones. The
+third (Test Patient Three) has an overdue pharmacy order, so authorizing its discharge sends Discharge coordinators an
+approval alert, which is handy for testing phone alerts. When you're done, an Administrator can click **Archive** on a
+test patient under **Patients**. It disappears from every list, queue, approval and dashboard and its bed is freed;
+nothing is deleted, and the archive is recorded in the audit trail.
 
 ## Who can do what
 
@@ -359,7 +363,9 @@ department a reminder, everyone working that department's queue is alerted. Tapp
 phone. Each person turns alerts on for themselves under **Account**:
 
 - **This device** (Web Push): works in the installed app and in desktop browsers. iPhone needs the installed app (iOS 16.4+).
-- **Telegram**: **Connect Telegram** opens a chat with your bot; tap **Start**. Send `/stop` there to disconnect.
+- **Telegram**: **Connect Telegram** opens a chat with your bot; tap **Start**. If Telegram isn't installed on the computer,
+  the page shows a QR code to scan with your phone and a `/start …` message to copy into the bot. Send `/stop` there
+  to disconnect.
 
 Demo accounts can't turn alerts on, because everyone shares them.
 

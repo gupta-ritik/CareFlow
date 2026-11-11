@@ -1,13 +1,13 @@
 "use client";
 
 import clsx from "clsx";
-import { FileText, Plus, Search, X } from "lucide-react";
+import { Archive, FileText, Plus, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button, ErrorText, Field, PageHeader, Panel, Skeleton, WorkflowPill, inputClass } from "./ui";
 import { setupStatus, type NewPatient } from "@/lib/api";
 import { DEPT_LABEL, duration, minutesSince } from "@/lib/format";
-import { useAdmit, useAuthorize, useImportFhir, usePatients, useUpdatePatient } from "@/lib/queries";
+import { useAdmit, useArchivePatient, useAuthorize, useImportFhir, usePatients, useUpdatePatient } from "@/lib/queries";
 import { useCan } from "@/lib/session";
 import type { PatientRecord } from "@/lib/types";
 
@@ -190,9 +190,39 @@ function ConsentToggle({ p }: { p: PatientRecord }) {
   );
 }
 
+/** Administrator only: hide a test patient everywhere. Nothing is deleted; the archive is in the audit trail. */
+function ArchiveButton({ p }: { p: PatientRecord }) {
+  const archive = useArchivePatient();
+  const [open, setOpen] = useState(false);
+  if (!open)
+    return (
+      <Button variant="quiet" onClick={() => setOpen(true)} className="whitespace-nowrap" title="Archive this patient">
+        <Archive className="size-4" aria-hidden /> Archive
+      </Button>
+    );
+  return (
+    <div className="flex w-full flex-col gap-2 rounded-2xl border border-white/80 bg-white/70 p-3 sm:w-80">
+      <p className="text-sm text-ink">
+        Archive <span className="font-semibold">{p.displayName}</span> ({p.mrn})? They disappear from every list, queue, approval and dashboard, and
+        their bed is freed. Nothing is deleted, and the archive is recorded in the audit trail.
+      </p>
+      <ErrorText error={archive.error} />
+      <div className="flex gap-2">
+        <Button variant="danger" disabled={archive.isPending} onClick={() => archive.mutate({ ref: p.ref, reason: "Test or demo patient" })}>
+          {archive.isPending ? "Archiving" : "Archive patient"}
+        </Button>
+        <Button variant="quiet" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function Row({ p }: { p: PatientRecord }) {
   const canAuthorize = useCan("discharge:authorize");
   const canEdit = useCan("patient:write");
+  const canArchive = useCan("user:manage");
   return (
     <li className="grid gap-3 px-4 py-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] md:items-center md:gap-6">
       <div className="min-w-0">
@@ -237,6 +267,7 @@ function Row({ p }: { p: PatientRecord }) {
             <span className="text-sm text-faint">Waiting for a clinician to authorize discharge</span>
           )
         ) : null}
+        {canArchive && p.status !== "archived" && <ArchiveButton p={p} />}
       </div>
     </li>
   );

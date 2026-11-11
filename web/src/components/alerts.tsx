@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, BellOff, Download, Send, Smartphone } from "lucide-react";
+import { Bell, BellOff, Check, Copy, Download, Send, Smartphone } from "lucide-react";
+import QRCode from "qrcode";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { addPushSubscription, alertSettings, removeAlertChannel, sendTestAlert, telegramLink } from "@/lib/api";
 import { currentSubscription, deviceLabel, isIOS, isStandalone, pushSupported, subscribe, useInstallPrompt } from "@/lib/pwa";
@@ -61,15 +62,71 @@ function InstallSection() {
   );
 }
 
+/** If Telegram didn't open (no Telegram app on this computer): scan the code with a phone, or send the message by hand. */
+function TelegramLinkHelp({ url, minutes }: { url: string; minutes: number }) {
+  const [qr, setQr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const parsed = new URL(url);
+  const bot = parsed.pathname.replace(/^\//, "");
+  const message = `/start ${parsed.searchParams.get("start") ?? ""}`;
+
+  useEffect(() => {
+    QRCode.toDataURL(url, { margin: 1, width: 176, color: { dark: "#0f2236", light: "#ffffff" } })
+      .then(setQr)
+      .catch(() => setQr(null));
+  }, [url]);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-white/80 bg-white/70 p-3">
+      <p className="text-sm text-ink">
+        Telegram didn&apos;t open? Use your phone. The link works for {minutes} minutes.
+      </p>
+      <div className="flex flex-wrap items-start gap-4">
+        {qr && (
+          // A data: URL made in the browser from the link above; nothing is fetched.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={qr} width={132} height={132} alt="QR code that opens the CareFlow bot in Telegram" className="rounded-lg" />
+        )}
+        <ol className="flex min-w-0 flex-1 list-decimal flex-col gap-1.5 pl-4 text-xs leading-relaxed text-slate">
+          <li>Scan the code with your phone&apos;s camera and tap <strong>Start</strong> in Telegram.</li>
+          <li>
+            Or, in Telegram on any device, open <strong>@{bot}</strong> and send:
+            <span className="mt-1 flex items-center gap-1.5">
+              <code className="min-w-0 truncate rounded-md bg-mist px-1.5 py-1 text-[11px] text-ink">{message}</code>
+              <Button variant="secondary" className="shrink-0 px-2 py-1 text-xs" onClick={copy}>
+                {copied ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />} {copied ? "Copied" : "Copy"}
+              </Button>
+            </span>
+          </li>
+          <li>
+            Or <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-harbor hover:underline">open the link again</a>.
+          </li>
+        </ol>
+      </div>
+      <p className="text-xs text-faint">Keep this message to yourself: it connects a Telegram chat to your account.</p>
+    </div>
+  );
+}
+
 export function AlertsPanel() {
   const qc = useQueryClient();
-  const [linking, setLinking] = useState(false);
+  // The connect link in use, and how many Telegram chats were connected when it was made (to notice the new one).
+  const [link, setLink] = useState<{ url: string; minutes: number; before: number } | null>(null);
   const { data, error: loadError } = useQuery({
     queryKey: ["alert-settings"],
     queryFn: alertSettings,
     refetchOnWindowFocus: true,
     // While the person is in Telegram, notice the new connection without a reload.
-    refetchInterval: (q) => (linking && !q.state.data?.channels.some((c) => c.kind === "telegram") ? 4000 : false),
+    refetchInterval: (q) => (link && (q.state.data?.channels.filter((c) => c.kind === "telegram").length ?? 0) <= link.before ? 4000 : false),
   });
   const [endpoint, setEndpoint] = useState<string | null>(null);
   const [state, setState] = useState<{
@@ -87,7 +144,7 @@ export function AlertsPanel() {
   }, []);
 
   const telegramChannels = data?.channels.filter((c) => c.kind === "telegram") ?? [];
-  const waitingForTelegram = linking && telegramChannels.length === 0;
+  const waitingForTelegram = link !== null && telegramChannels.length <= link.before;
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["alert-settings"] });
   const run = async (busy: string, fn: () => Promise<string | void>) => {
@@ -134,9 +191,9 @@ export function AlertsPanel() {
   const connectTelegram = () =>
     run("telegram", async () => {
       const { url, expiresInMinutes } = await telegramLink();
+      setLink({ url, minutes: expiresInMinutes, before: telegramChannels.length });
       window.open(url, "_blank", "noopener");
-      setLinking(true);
-      return `Telegram opened. Tap Start in the chat with the CareFlow bot (the link works for ${expiresInMinutes} minutes).`;
+      return "Telegram opened. Tap Start in the chat with the CareFlow bot.";
     });
   const test = () =>
     run("test", async () => {
@@ -199,7 +256,13 @@ export function AlertsPanel() {
                     <Button variant="secondary" className="w-fit" onClick={connectTelegram} disabled={!!state.busy}>
                       <Send className="size-4" aria-hidden /> {telegramChannels.length ? "Connect another Telegram" : "Connect Telegram"}
                     </Button>
-                    {waitingForTelegram && <p className="text-xs text-faint">Waiting for you to tap Start in Telegram…</p>}
+                    {waitingForTelegram && link && (
+                      <>
+                        <p className="text-xs text-faint">Waiting for you to tap Start in Telegram…</p>
+                        <TelegramLinkHelp url={link.url} minutes={link.minutes} />
+                      </>
+                    )}
+                    {link && !waitingForTelegram && <Note tone="good">Telegram connected.</Note>}
                   </>
                 )}
               </div>
