@@ -32,7 +32,7 @@ can take up to a minute while the free server wakes up.
 12. [Run the tests](#run-the-tests)
 13. [Troubleshooting](#troubleshooting)
 14. [Project layout](#project-layout)
-15. [More documentation](#more-documentation)
+
 
 ---
 
@@ -474,17 +474,3 @@ docs/       guides (below; not in this repository)
 render.yaml free cloud demo setup on Render
 ```
 
-## More documentation
-
-This README is the only guide published in the repository. The detailed guides below are kept with the project's
-maintainers, not on GitHub (`.gitignore` excludes every `.md` file except this README and `backend/app/knowledge/`).
-
-| Document | For |
-| --- | --- |
-| `docs/user-guide.md` | Hospital staff: daily use |
-| `docs/manual-test-plan.md` | Testers: test accounts, test patients, step-by-step test cases |
-| `docs/deployment.md` | IT: install on a hospital server with HTTPS and backups |
-| `docs/integrations.md` | IT: connect HL7, TPA, pharmacy, lab and HIS systems |
-| `docs/fhir.md` | IT: connect a FHIR server |
-| `docs/security-and-compliance.md` | Security and privacy review |
-| `docs/reference.md` | Developers: code layout, every setting, API, rules, test results, performance, roadmap |
