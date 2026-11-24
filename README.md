@@ -432,8 +432,7 @@ GitHub Actions runs [.github/workflows/ci.yml](.github/workflows/ci.yml) on ever
 | **backend** | Starts its own PostgreSQL and Redis, runs the tests, the 30 discharge scenarios and the Ask CareFlow evals (fallback mode) |
 | **web** | Installs packages, lints and builds the website |
 
-CI only checks the code; it doesn't deploy. Vercel and Render deploy on their own. If every run ends in *Startup
-failure* within seconds, GitHub Actions is blocked for the account (for example, billing is locked under
+
 **Settings → Billing and plans**), not by the code.
 
 ## Troubleshooting
